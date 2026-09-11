@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import {
   Landmark,
   Search,
@@ -12,8 +12,13 @@ import {
   X,
   BookOpen,
   ChevronRight,
+  ChevronLeft,
   ShieldCheck,
-  Compass
+  Compass,
+  Film,
+  Play,
+  Pause,
+  Maximize2
 } from 'lucide-react';
 import { unescoMonumentsList, UnescoMonument } from '@/data/unescoMonuments';
 import { Monument3DViewer } from '@/components/Monument3DViewer';
@@ -29,6 +34,36 @@ export function UnescoPage({ onPlayAudioGuide }: UnescoPageProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [active3DMonument, setActive3DMonument] = useState<UnescoMonument | null>(null);
   const [detailMonument, setDetailMonument] = useState<UnescoMonument | null>(null);
+  const [isCinemaMode, setIsCinemaMode] = useState(false);
+  const [cinemaIndex, setCinemaIndex] = useState(0);
+  const [cinemaAutoPlay, setCinemaAutoPlay] = useState(true);
+
+  // Auto-play interval for Cinema Mode
+  useEffect(() => {
+    if (!isCinemaMode || !cinemaAutoPlay) return;
+    const timer = setInterval(() => {
+      setCinemaIndex((prev) => (prev + 1) % unescoMonumentsList.length);
+    }, 8000);
+    return () => clearInterval(timer);
+  }, [isCinemaMode, cinemaAutoPlay]);
+
+  // Keyboard navigation for Cinema Mode
+  useEffect(() => {
+    if (!isCinemaMode) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setIsCinemaMode(false);
+      if (e.key === 'ArrowRight') setCinemaIndex((prev) => (prev + 1) % unescoMonumentsList.length);
+      if (e.key === 'ArrowLeft') setCinemaIndex((prev) => (prev - 1 + unescoMonumentsList.length) % unescoMonumentsList.length);
+      if (e.key === ' ') {
+        e.preventDefault();
+        setCinemaAutoPlay((prev) => !prev);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isCinemaMode]);
+
+  const currentCinemaMonument = unescoMonumentsList[cinemaIndex] || unescoMonumentsList[0];
 
   const filteredMonuments = useMemo(() => {
     return unescoMonumentsList.filter((m) => {
@@ -59,6 +94,176 @@ export function UnescoPage({ onPlayAudioGuide }: UnescoPageProps) {
 
   return (
     <MonumentAnimatedBackground className="min-h-screen text-stone-100 pt-20 pb-28" isFixed={true}>
+      {/* FULL-SCREEN MONUMENT CINEMA EXPERIENCE */}
+      {isCinemaMode && (
+        <div className="fixed inset-0 z-50 bg-black flex flex-col justify-between overflow-hidden animate-fade-in select-none">
+          {/* Background Fullscreen Image with Smooth Transition */}
+          <div className="absolute inset-0 overflow-hidden">
+            <img
+              key={currentCinemaMonument.id}
+              src={currentCinemaMonument.image}
+              alt={currentCinemaMonument.name}
+              onError={(e) => {
+                e.currentTarget.src = 'https://images.unsplash.com/photo-1524492412937-b28074a5d7da?w=1920&q=85';
+              }}
+              className="w-full h-full object-cover transform scale-105 transition-all duration-1000 ease-out"
+            />
+            {/* Cinematic Gradients for Rich Text Contrast */}
+            <div className="absolute inset-0 bg-gradient-to-t from-stone-950 via-stone-950/45 to-black/80" />
+            <div className="absolute inset-0 bg-radial from-transparent via-black/20 to-black/75 pointer-events-none" />
+          </div>
+
+          {/* Top Cinema HUD */}
+          <div className="relative z-20 p-4 sm:p-6 flex items-center justify-between bg-gradient-to-b from-black/85 via-black/50 to-transparent">
+            <div className="flex items-center gap-3">
+              <div className="p-2.5 rounded-2xl bg-amber-500/20 border border-amber-500/40 text-amber-400 backdrop-blur-md">
+                <Landmark className="w-5 h-5" />
+              </div>
+              <div>
+                <span className="text-[10px] uppercase font-black tracking-widest text-amber-400 block">
+                  UNESCO World Heritage Cinema
+                </span>
+                <h2 className="text-white font-bold text-sm sm:text-base">
+                  Living Monuments of Bharat
+                </h2>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <span className="px-3 py-1.5 rounded-xl bg-black/60 backdrop-blur-md border border-stone-700 text-amber-300 text-xs font-mono font-bold">
+                {cinemaIndex + 1} / {unescoMonumentsList.length}
+              </span>
+
+              <button
+                onClick={() => setCinemaAutoPlay(!cinemaAutoPlay)}
+                className={`p-2 sm:px-3 sm:py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${
+                  cinemaAutoPlay
+                    ? 'bg-amber-500 text-stone-950 shadow-lg shadow-amber-900/40'
+                    : 'bg-black/60 text-stone-300 border border-stone-700 hover:bg-stone-800'
+                }`}
+                title={cinemaAutoPlay ? 'Pause Slideshow (Space)' : 'Play Slideshow (Space)'}
+              >
+                {cinemaAutoPlay ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
+                <span className="hidden sm:inline">{cinemaAutoPlay ? 'Auto-Playing' : 'Paused'}</span>
+              </button>
+
+              <button
+                onClick={() => {
+                  if (!document.fullscreenElement) {
+                    document.documentElement.requestFullscreen?.().catch(() => {});
+                  } else {
+                    document.exitFullscreen?.().catch(() => {});
+                  }
+                }}
+                className="p-2 sm:px-3 sm:py-2 rounded-xl bg-black/60 text-stone-300 border border-stone-700 hover:bg-stone-800 text-xs font-bold transition-colors"
+                title="Toggle Browser Fullscreen"
+              >
+                <Maximize2 className="w-4 h-4" />
+              </button>
+
+              <button
+                onClick={() => setIsCinemaMode(false)}
+                className="p-2 sm:px-3.5 sm:py-2 rounded-xl bg-rose-500/20 hover:bg-rose-500 text-rose-300 hover:text-white border border-rose-500/40 text-xs font-bold transition-all flex items-center gap-1"
+                title="Exit Full-Screen Cinema (Esc)"
+              >
+                <X className="w-4 h-4" />
+                <span className="hidden sm:inline">Exit</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Navigation Arrows (Left / Right) */}
+          <button
+            onClick={() => setCinemaIndex((prev) => (prev - 1 + unescoMonumentsList.length) % unescoMonumentsList.length)}
+            className="absolute left-4 top-1/2 -translate-y-1/2 z-30 p-3 sm:p-4 rounded-2xl bg-black/60 hover:bg-amber-500 hover:text-stone-950 text-white border border-white/20 backdrop-blur-md transition-all hover:scale-110 shadow-2xl"
+            title="Previous Monument (Arrow Left)"
+          >
+            <ChevronLeft className="w-6 h-6" />
+          </button>
+
+          <button
+            onClick={() => setCinemaIndex((prev) => (prev + 1) % unescoMonumentsList.length)}
+            className="absolute right-4 top-1/2 -translate-y-1/2 z-30 p-3 sm:p-4 rounded-2xl bg-black/60 hover:bg-amber-500 hover:text-stone-950 text-white border border-white/20 backdrop-blur-md transition-all hover:scale-110 shadow-2xl"
+            title="Next Monument (Arrow Right)"
+          >
+            <ChevronRight className="w-6 h-6" />
+          </button>
+
+          {/* Bottom Monument Dossier HUD */}
+          <div className="relative z-20 p-4 sm:p-8 bg-gradient-to-t from-stone-950 via-stone-950/95 to-transparent">
+            <div className="max-w-5xl mx-auto space-y-4">
+              <div className="flex flex-wrap items-end justify-between gap-3">
+                <div>
+                  <div className="flex items-center gap-2 mb-1.5 flex-wrap">
+                    <span className="px-2.5 py-0.5 rounded-full bg-amber-500/25 border border-amber-500/40 text-amber-300 font-serif text-xs font-bold">
+                      {currentCinemaMonument.hindiName}
+                    </span>
+                    <span className="px-2.5 py-0.5 rounded-full bg-stone-800/80 text-stone-300 text-[11px] font-mono">
+                      Inscribed {currentCinemaMonument.yearInscribed}
+                    </span>
+                    <span className="px-2.5 py-0.5 rounded-full bg-teal-500/20 border border-teal-500/40 text-teal-300 text-[11px] font-bold">
+                      {currentCinemaMonument.location}
+                    </span>
+                  </div>
+                  <h1 className="text-2xl sm:text-4xl lg:text-5xl font-black text-white drop-shadow-md">
+                    {currentCinemaMonument.name}
+                  </h1>
+                </div>
+
+                {/* Action Buttons in Cinema Mode */}
+                <div className="flex flex-wrap items-center gap-2">
+                  <button
+                    onClick={() => onPlayAudioGuide?.(currentCinemaMonument.name, currentCinemaMonument.audioNarration, currentCinemaMonument.location)}
+                    className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-stone-950 font-black text-xs shadow-lg shadow-amber-900/30 flex items-center gap-1.5 transition-all hover:scale-105"
+                  >
+                    <Volume2 className="w-4 h-4" />
+                    <span>Listen Spoken Guide</span>
+                  </button>
+
+                  <button
+                    onClick={() => setActive3DMonument(currentCinemaMonument)}
+                    className="px-4 py-2.5 rounded-xl bg-stone-800/90 hover:bg-stone-700 text-white font-bold text-xs border border-stone-700 flex items-center gap-1.5 transition-all"
+                  >
+                    <Eye className="w-4 h-4 text-amber-400" />
+                    <span>3D Sanctum</span>
+                  </button>
+
+                  <button
+                    onClick={() => setDetailMonument(currentCinemaMonument)}
+                    className="px-4 py-2.5 rounded-xl bg-stone-800/90 hover:bg-stone-700 text-stone-200 font-bold text-xs border border-stone-700 flex items-center gap-1.5 transition-all"
+                  >
+                    <BookOpen className="w-4 h-4 text-teal-400" />
+                    <span>Full Dossier</span>
+                  </button>
+                </div>
+              </div>
+
+              <p className="text-stone-300 text-xs sm:text-sm max-w-4xl line-clamp-2 leading-relaxed drop-shadow">
+                {currentCinemaMonument.coreHighlight}
+              </p>
+
+              {/* Quick Thumbnail Strip */}
+              <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide pt-2 pb-1">
+                {unescoMonumentsList.map((m, idx) => (
+                  <button
+                    key={m.id}
+                    onClick={() => setCinemaIndex(idx)}
+                    className={`relative shrink-0 w-16 sm:w-20 h-11 sm:h-13 rounded-xl overflow-hidden border transition-all ${
+                      idx === cinemaIndex
+                        ? 'border-amber-400 ring-2 ring-amber-500/50 scale-105'
+                        : 'border-stone-800 opacity-60 hover:opacity-100'
+                    }`}
+                    title={m.name}
+                  >
+                    <img src={m.image} alt={m.name} className="w-full h-full object-cover" />
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* 3D Viewer Full Modal */}
       {active3DMonument && (
         <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-6 animate-fade-in">
@@ -233,9 +438,30 @@ export function UnescoPage({ onPlayAudioGuide }: UnescoPageProps) {
             Monuments of <span className="bg-gradient-to-r from-amber-300 via-amber-400 to-orange-500 bg-clip-text text-transparent">Bharat</span>
           </h1>
 
-          <p className="text-stone-300 text-base sm:text-lg max-w-3xl mx-auto leading-relaxed mb-10">
+          <p className="text-stone-300 text-base sm:text-lg max-w-3xl mx-auto leading-relaxed mb-8">
             Explore 32 comprehensively documented UNESCO World Heritage sites of India — from the monolithic rock-cut Kailasa Temple and Konark astronomical sundials to royal Maratha hill forts and ancient university campuses.
           </p>
+
+          {/* Full Screen Cinema Mode & Catalog CTAs */}
+          <div className="flex flex-wrap items-center justify-center gap-4 mb-10">
+            <button
+              onClick={() => {
+                setIsCinemaMode(true);
+                setCinemaIndex(0);
+              }}
+              className="inline-flex items-center gap-2.5 px-7 py-4 rounded-2xl bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 hover:from-amber-400 hover:via-orange-400 hover:to-amber-500 text-stone-950 font-black text-sm shadow-2xl shadow-amber-900/50 hover:scale-105 transition-all cursor-pointer border border-amber-400/40"
+            >
+              <Film className="w-5 h-5 text-stone-950" />
+              <span>Enter Full-Screen Monument Cinema (पूर्ण स्क्रीन दृश्य)</span>
+            </button>
+            <a
+              href="#monuments-grid"
+              className="inline-flex items-center gap-2 px-6 py-4 rounded-2xl bg-stone-900/80 hover:bg-stone-800 text-stone-200 font-bold text-sm border border-stone-700 backdrop-blur-md transition-all"
+            >
+              <Search className="w-4 h-4 text-amber-400" />
+              <span>Browse All 32 Monuments</span>
+            </a>
+          </div>
 
           {/* Civilizational Counter Stats */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 max-w-4xl mx-auto">
@@ -260,7 +486,7 @@ export function UnescoPage({ onPlayAudioGuide }: UnescoPageProps) {
       </section>
 
       {/* Main Content & Filters */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 py-10">
+      <section id="monuments-grid" className="max-w-7xl mx-auto px-4 sm:px-6 py-10">
         {/* Search & Filter Bar */}
         <div className="space-y-4 mb-10">
           {/* Search Box */}

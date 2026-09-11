@@ -1,18 +1,79 @@
-import { useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import { Sparkles, ChevronRight } from 'lucide-react';
+
+export interface MonumentBackdrop {
+  name: string;
+  hindiName: string;
+  sub: string;
+  url: string;
+}
+
+export const heritageBackdrops: MonumentBackdrop[] = [
+  {
+    name: 'Konark Sun Temple',
+    hindiName: 'कोणार्क सूर्य मंदिर',
+    sub: 'Odisha • 13th Century Ganga Dynasty Sun Chariot',
+    url: 'https://plus.unsplash.com/premium_photo-1694475136007-14c4dbf484f5?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=85&w=1920'
+  },
+  {
+    name: 'Taj Mahal',
+    hindiName: 'ताज महल',
+    sub: 'Agra, Uttar Pradesh • Mughal Makrana Marble Wonder',
+    url: 'https://plus.unsplash.com/premium_photo-1661885523029-fc960a2bb4f3?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=85&w=1920'
+  },
+  {
+    name: 'Hampi Vittala Stone Chariot',
+    hindiName: 'हम्पी प्रस्तर रथ',
+    sub: 'Vijayanagara, Karnataka • 14th Century Imperial Capital',
+    url: 'https://plus.unsplash.com/premium_photo-1697730504977-26847b1f1f91?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=85&w=1920'
+  },
+  {
+    name: 'Ellora Kailasa Monolithic Temple',
+    hindiName: 'कैलाश मंदिर, एलोरा',
+    sub: 'Maharashtra • Monolithic Mountain Rock-Cut Wonder',
+    url: 'https://plus.unsplash.com/premium_photo-1697729444936-8c6a6f643312?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=85&w=1920'
+  },
+  {
+    name: 'The Brihadisvara Temple',
+    hindiName: 'बृहदीश्वर मंदिर, तंजावुर',
+    sub: 'Thanjavur, Tamil Nadu • 1010 CE Great Living Chola Temple',
+    url: 'https://images.unsplash.com/photo-1686310894901-d326b8722c13?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=85&w=1920'
+  },
+  {
+    name: 'Chittorgarh Fort',
+    hindiName: 'चित्तौड़गढ़ किला',
+    sub: 'Rajasthan • Legendary Hilltop Mewar Citadel & Victory Tower',
+    url: 'https://plus.unsplash.com/premium_photo-1697729640715-b4f8b691b9ce?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=85&w=1920'
+  },
+];
 
 interface MonumentAnimatedBackgroundProps {
   children?: React.ReactNode;
   className?: string;
   isFixed?: boolean;
+  showBackdropIndicator?: boolean;
 }
 
 export function MonumentAnimatedBackground({
   children,
   className = '',
   isFixed = true,
+  showBackdropIndicator = true,
 }: MonumentAnimatedBackgroundProps) {
+  const [currentBackdrop, setCurrentBackdrop] = useState(0);
+  const [isPaused, setIsPaused] = useState(false);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
+  // Auto-cycle through living monument backdrops every 9 seconds
+  useEffect(() => {
+    if (isPaused) return;
+    const interval = setInterval(() => {
+      setCurrentBackdrop((prev) => (prev + 1) % heritageBackdrops.length);
+    }, 9000);
+    return () => clearInterval(interval);
+  }, [isPaused]);
+
+  // Canvas particle & sacred geometry animation
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -39,17 +100,18 @@ export function MonumentAnimatedBackground({
 
     // Stars / Constellations
     const stars: { x: number; y: number; size: number; alpha: number; speed: number }[] = [];
-    for (let i = 0; i < 80; i++) {
+    const numStars = isFixed ? 90 : 45;
+    for (let i = 0; i < numStars; i++) {
       stars.push({
-        x: Math.random() * width,
-        y: Math.random() * height * 0.7,
-        size: Math.random() * 1.5 + 0.5,
+        x: Math.random() * (width || window.innerWidth),
+        y: Math.random() * ((height || window.innerHeight) * 0.75),
+        size: Math.random() * 1.5 + 0.6,
         alpha: Math.random() * 0.8 + 0.2,
         speed: Math.random() * 0.02 + 0.005,
       });
     }
 
-    // Floating golden diya / lantern particles
+    // Floating golden diya / sacred lantern particles
     const particles: {
       x: number;
       y: number;
@@ -58,188 +120,90 @@ export function MonumentAnimatedBackground({
       speedX: number;
       opacity: number;
       pulse: number;
+      color: string;
     }[] = [];
 
-    const numParticles = 75;
+    const numParticles = isFixed ? 65 : 35;
+    const colors = [
+      'rgba(251, 191, 36, ', // Amber
+      'rgba(245, 158, 11, ', // Golden orange
+      'rgba(249, 115, 22, ', // Saffron
+      'rgba(253, 230, 138, ', // Light gold
+    ];
+
     for (let i = 0; i < numParticles; i++) {
       particles.push({
-        x: Math.random() * width,
-        y: Math.random() * height,
+        x: Math.random() * (width || window.innerWidth),
+        y: Math.random() * (height || window.innerHeight),
         size: Math.random() * 2.8 + 1.2,
-        speedY: -(Math.random() * 0.4 + 0.15),
-        speedX: (Math.random() - 0.5) * 0.3,
+        speedY: -(Math.random() * 0.45 + 0.18),
+        speedX: (Math.random() - 0.5) * 0.35,
         opacity: Math.random() * 0.75 + 0.25,
         pulse: Math.random() * Math.PI * 2,
+        color: colors[Math.floor(Math.random() * colors.length)],
       });
     }
 
     let time = 0;
-    let panOffset = 0;
 
     const render = () => {
       time += 0.012;
-      panOffset += 0.35; // Gentle continuous horizontal pan of the monument panorama
       ctx.clearRect(0, 0, width, height);
 
-      // 1. Royal Indian Twilight Sky Gradient (Deep Sandstone Obsidian -> Royal Amber Glow)
-      const grad = ctx.createLinearGradient(0, 0, 0, height);
-      grad.addColorStop(0, '#100a06');
-      grad.addColorStop(0.3, '#190e07');
-      grad.addColorStop(0.65, '#221207');
-      grad.addColorStop(0.85, '#2a1608');
-      grad.addColorStop(1, '#140a04');
-      ctx.fillStyle = grad;
-      ctx.fillRect(0, 0, width, height);
-
-      // 2. Stars Twinkling
+      // 1. Soft Twinkling Constellations in Upper Sky
       stars.forEach((s) => {
-        s.alpha += Math.sin(time * 2 + s.x) * s.speed;
-        const a = Math.max(0.1, Math.min(0.9, s.alpha));
+        s.alpha += Math.sin(time * 2.5 + s.x) * s.speed;
+        const a = Math.max(0.15, Math.min(0.85, s.alpha));
         ctx.fillStyle = `rgba(254, 240, 138, ${a})`;
         ctx.beginPath();
         ctx.arc(s.x, s.y, s.size, 0, Math.PI * 2);
         ctx.fill();
       });
 
-      // 3. Subtle Golden Auroral Halo Beams
-      const beamX1 = width * 0.3 + Math.sin(time * 0.5) * 140;
-      const beamY1 = height * 0.35 + Math.cos(time * 0.4) * 70;
-      const radGrad1 = ctx.createRadialGradient(beamX1, beamY1, 20, beamX1, beamY1, width * 0.5);
-      radGrad1.addColorStop(0, 'rgba(245, 158, 11, 0.18)');
-      radGrad1.addColorStop(0.5, 'rgba(217, 119, 6, 0.07)');
-      radGrad1.addColorStop(1, 'rgba(0, 0, 0, 0)');
-      ctx.fillStyle = radGrad1;
-      ctx.fillRect(0, 0, width, height);
-
-      const beamX2 = width * 0.75 + Math.cos(time * 0.35) * 160;
-      const beamY2 = height * 0.55 + Math.sin(time * 0.45) * 90;
-      const radGrad2 = ctx.createRadialGradient(beamX2, beamY2, 30, beamX2, beamY2, width * 0.45);
-      radGrad2.addColorStop(0, 'rgba(234, 88, 12, 0.15)');
-      radGrad2.addColorStop(0.6, 'rgba(180, 83, 9, 0.05)');
-      radGrad2.addColorStop(1, 'rgba(0, 0, 0, 0)');
-      ctx.fillStyle = radGrad2;
-      ctx.fillRect(0, 0, width, height);
-
-      // 4. Rotating Sacred Mandala in Background
+      // 2. Rotating Konark Sun Wheel / Cosmic Sacred Mandala in Upper Background
       ctx.save();
-      ctx.translate(width * 0.5, height * 0.42);
-      ctx.rotate(time * 0.035);
-      ctx.strokeStyle = 'rgba(245, 158, 11, 0.04)';
-      ctx.lineWidth = 1.5;
+      const chakraCenterX = width * 0.5;
+      const chakraCenterY = height * (isFixed ? 0.35 : 0.45);
+      const chakraRadius = Math.min(width, height) * (isFixed ? 0.45 : 0.35);
 
-      const mandalaR = Math.min(width, height) * 0.48;
-      for (let ring = 1; ring <= 4; ring++) {
+      ctx.translate(chakraCenterX, chakraCenterY);
+      ctx.rotate(time * 0.025); // Gentle celestial rotation
+      ctx.strokeStyle = 'rgba(245, 158, 11, 0.07)';
+      ctx.lineWidth = 1.6;
+
+      // Concentric sanctum rings
+      for (let r = 1; r <= 4; r++) {
         ctx.beginPath();
-        ctx.arc(0, 0, (mandalaR * ring) / 4, 0, Math.PI * 2);
+        ctx.arc(0, 0, (chakraRadius * r) / 4, 0, Math.PI * 2);
         ctx.stroke();
       }
 
-      const numPetals = 16;
-      for (let p = 0; p < numPetals; p++) {
-        const ang = (p * Math.PI * 2) / numPetals;
+      // 24 Astronomical Spokes (Konark Surya Chakra)
+      const numSpokes = 24;
+      for (let sp = 0; sp < numSpokes; sp++) {
+        const ang = (sp * Math.PI * 2) / numSpokes;
         ctx.beginPath();
         ctx.moveTo(0, 0);
-        ctx.lineTo(Math.cos(ang) * mandalaR, Math.sin(ang) * mandalaR);
+        ctx.lineTo(Math.cos(ang) * chakraRadius, Math.sin(ang) * chakraRadius);
         ctx.stroke();
 
-        ctx.beginPath();
-        ctx.arc(Math.cos(ang) * mandalaR * 0.6, Math.sin(ang) * mandalaR * 0.6, mandalaR * 0.16, 0, Math.PI * 2);
-        ctx.stroke();
+        if (sp % 2 === 0) {
+          ctx.beginPath();
+          ctx.arc(Math.cos(ang) * chakraRadius * 0.65, Math.sin(ang) * chakraRadius * 0.65, chakraRadius * 0.05, 0, Math.PI * 2);
+          ctx.stroke();
+        }
       }
       ctx.restore();
 
-      // 5. Animated Panning Horizon Monument Silhouettes with Golden Edge Glow
-      ctx.save();
-      const baseY = height * 0.92;
-      ctx.fillStyle = 'rgba(14, 8, 4, 0.9)';
-      ctx.strokeStyle = 'rgba(245, 158, 11, 0.35)';
-      ctx.lineWidth = 2.0;
-      ctx.shadowColor = 'rgba(245, 158, 11, 0.5)';
-      ctx.shadowBlur = 15;
-
-      ctx.beginPath();
-      ctx.moveTo(0, height);
-      ctx.lineTo(0, baseY);
-
-      // Repeating monument profile (Taj Mahal, Konark, Hampi, Qutub, Fort)
-      const segWidth = 420;
-      const numSegs = Math.ceil(width / segWidth) + 2;
-      const offset = -(panOffset % segWidth);
-
-      for (let s = -1; s < numSegs; s++) {
-        const sx = s * segWidth + offset;
-
-        // 1. Temple Vimana Spire (Brihadisvara / Hampi)
-        ctx.lineTo(sx + 30, baseY);
-        ctx.lineTo(sx + 55, baseY - 60);
-        ctx.lineTo(sx + 65, baseY - 90); // Spire peak
-        ctx.lineTo(sx + 67, baseY - 98); // Kalasha finial
-        ctx.lineTo(sx + 70, baseY - 90);
-        ctx.lineTo(sx + 80, baseY - 60);
-        ctx.lineTo(sx + 105, baseY);
-
-        // 2. Qutub Minar Tapering Tower with Balconies
-        ctx.lineTo(sx + 130, baseY);
-        ctx.lineTo(sx + 136, baseY - 40);
-        ctx.lineTo(sx + 142, baseY - 40); // balcony
-        ctx.lineTo(sx + 138, baseY - 80);
-        ctx.lineTo(sx + 144, baseY - 80); // balcony
-        ctx.lineTo(sx + 140, baseY - 110); // peak
-        ctx.lineTo(sx + 142, baseY - 110);
-        ctx.lineTo(sx + 148, baseY);
-
-        // 3. Central Taj Mahal Grand Bulbous Dome & Minarets
-        ctx.lineTo(sx + 180, baseY);
-        // Left Minaret
-        ctx.lineTo(sx + 185, baseY - 85);
-        ctx.lineTo(sx + 189, baseY - 85);
-        ctx.lineTo(sx + 192, baseY);
-        // Plinth & Arched Iwan
-        ctx.lineTo(sx + 205, baseY);
-        ctx.lineTo(sx + 215, baseY - 45);
-        // Bulbous Dome
-        ctx.arc(sx + 240, baseY - 65, 26, Math.PI * 0.85, Math.PI * 0.15, true);
-        ctx.lineTo(sx + 240, baseY - 100); // Golden finial
-        ctx.lineTo(sx + 241, baseY - 65);
-        ctx.lineTo(sx + 265, baseY - 45);
-        ctx.lineTo(sx + 275, baseY);
-        // Right Minaret
-        ctx.lineTo(sx + 288, baseY - 85);
-        ctx.lineTo(sx + 292, baseY - 85);
-        ctx.lineTo(sx + 295, baseY);
-
-        // 4. Fort Ramparts & Bastions (Chittorgarh / Red Fort)
-        ctx.lineTo(sx + 315, baseY);
-        ctx.lineTo(sx + 315, baseY - 40);
-        ctx.lineTo(sx + 335, baseY - 40);
-        ctx.lineTo(sx + 335, baseY - 32);
-        ctx.lineTo(sx + 355, baseY - 32);
-        ctx.lineTo(sx + 355, baseY - 40);
-        ctx.lineTo(sx + 375, baseY - 40);
-        ctx.lineTo(sx + 375, baseY);
-
-        // 5. Buddhist Stupa Dome (Sanchi)
-        ctx.lineTo(sx + 390, baseY);
-        ctx.arc(sx + 405, baseY, 25, Math.PI, 0);
-        ctx.lineTo(sx + 405, baseY - 32); // harmika
-        ctx.lineTo(sx + 420, baseY);
-      }
-
-      ctx.lineTo(width, height);
-      ctx.closePath();
-      ctx.fill();
-      ctx.stroke();
-      ctx.restore();
-
-      // 6. Floating Golden Diya / Sparkle Particles Floating Upwards
+      // 3. Floating Golden Diya / Firefly Embers Rising Upward
       for (let i = 0; i < particles.length; i++) {
         const p = particles[i];
         p.y += p.speedY;
-        p.x += p.speedX + Math.sin(time + p.pulse) * 0.35;
-        p.pulse += 0.02;
+        p.x += p.speedX + Math.sin(time + p.pulse) * 0.4;
+        p.pulse += 0.025;
 
-        if (p.y < -10) {
-          p.y = height + 10;
+        if (p.y < -15) {
+          p.y = height + 15;
           p.x = Math.random() * width;
         }
 
@@ -248,11 +212,9 @@ export function MonumentAnimatedBackground({
         ctx.save();
         ctx.beginPath();
         ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
-
-        // Warm golden diya glow
-        ctx.fillStyle = `rgba(251, 191, 36, ${currentOpacity})`;
+        ctx.fillStyle = `${p.color}${currentOpacity})`;
         ctx.shadowColor = '#f59e0b';
-        ctx.shadowBlur = p.size * 6;
+        ctx.shadowBlur = p.size * 7;
         ctx.fill();
         ctx.restore();
       }
@@ -268,15 +230,78 @@ export function MonumentAnimatedBackground({
     };
   }, [isFixed]);
 
+  const activeBackdrop = heritageBackdrops[currentBackdrop];
+
   return (
     <div className={`relative w-full overflow-hidden ${className}`}>
-      {/* Background Animated Canvas */}
-      <canvas
-        ref={canvasRef}
-        className={`${isFixed ? 'fixed' : 'absolute'} inset-0 w-full h-full pointer-events-none z-0`}
-      />
+      {/* 1. Living Monument Background Imagery with Smooth Crossfade & Cinematic Drift */}
+      <div className={`${isFixed ? 'fixed' : 'absolute'} inset-0 pointer-events-none z-0 overflow-hidden`}>
+        {heritageBackdrops.map((backdrop, idx) => {
+          const isActive = idx === currentBackdrop;
+          return (
+            <div
+              key={backdrop.name}
+              className={`absolute inset-0 transition-opacity duration-1000 ease-in-out ${
+                isActive ? 'opacity-100 z-10' : 'opacity-0 z-0 pointer-events-none'
+              }`}
+            >
+              <img
+                src={backdrop.url}
+                alt={backdrop.name}
+                className={`w-full h-full object-cover transform transition-transform duration-[12000ms] ease-out ${
+                  isActive ? 'scale-110 translate-y-1' : 'scale-100 translate-y-0'
+                }`}
+              />
+            </div>
+          );
+        })}
 
-      {/* Content wrapper with royal warm ambient backdrop */}
+        {/* 2. Royal Atmospheric Indian Twilight Gradients & Overlays (Ensuring High Contrast) */}
+        <div className="absolute inset-0 bg-gradient-to-b from-stone-950/85 via-stone-950/75 to-stone-950/95 z-20" />
+        <div className="absolute inset-0 bg-radial from-amber-500/15 via-orange-950/20 to-stone-950/80 z-20 pointer-events-none mix-blend-color-dodge" />
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-amber-900/25 via-transparent to-black/60 z-20 pointer-events-none" />
+
+        {/* 3. Golden Particle & Konark Surya Chakra Canvas Overlay */}
+        <canvas
+          ref={canvasRef}
+          className="absolute inset-0 w-full h-full pointer-events-none z-30"
+        />
+      </div>
+
+      {/* 4. Floating Backdrop Control Indicator (Only if enabled and fixed) */}
+      {showBackdropIndicator && isFixed && (
+        <aside
+          aria-label="Living Heritage Atmosphere"
+          className="fixed bottom-5 right-5 z-40 flex items-center gap-2.5 px-4 py-2.5 rounded-2xl bg-stone-950/85 backdrop-blur-xl border border-amber-500/40 shadow-2xl text-xs text-stone-200 pointer-events-auto hover:border-amber-400 transition-all group"
+        >
+          <div className="flex items-center gap-2">
+            <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping" />
+            <Sparkles className="w-4 h-4 text-amber-400 animate-spin-slow" />
+            <div>
+              <span className="text-[10px] uppercase font-bold tracking-wider text-amber-400 block">
+                Living Heritage Atmosphere
+              </span>
+              <span className="font-bold text-white group-hover:text-amber-300 transition-colors">
+                {activeBackdrop.name}
+              </span>
+            </div>
+          </div>
+
+          <button
+            onClick={() => {
+              setIsPaused(true);
+              setCurrentBackdrop((prev) => (prev + 1) % heritageBackdrops.length);
+            }}
+            title="Switch to next heritage monument backdrop"
+            className="ml-2 p-1.5 rounded-xl bg-amber-500/20 hover:bg-amber-500 hover:text-stone-950 text-amber-300 transition-all flex items-center gap-1 font-bold text-[11px]"
+          >
+            <span>Switch</span>
+            <ChevronRight className="w-3.5 h-3.5" />
+          </button>
+        </aside>
+      )}
+
+      {/* 5. Main Page Content */}
       <div className="relative z-10">{children}</div>
     </div>
   );
