@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Sparkles, ChevronRight } from 'lucide-react';
+import { Sparkles, ChevronRight, X } from 'lucide-react';
 
 export interface MonumentBackdrop {
   name: string;
@@ -62,6 +62,7 @@ export function MonumentAnimatedBackground({
 }: MonumentAnimatedBackgroundProps) {
   const [currentBackdrop, setCurrentBackdrop] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
+  const [isIndicatorDismissed, setIsIndicatorDismissed] = useState(false);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
   // Auto-cycle through living monument backdrops every 9 seconds
@@ -269,7 +270,7 @@ export function MonumentAnimatedBackground({
       </div>
 
       {/* 4. Floating Backdrop Control Indicator (Only if enabled and fixed) */}
-      {showBackdropIndicator && isFixed && (
+      {showBackdropIndicator && isFixed && !isIndicatorDismissed && (
         <aside
           aria-label="Living Heritage Atmosphere"
           className="fixed bottom-5 right-5 z-40 flex items-center gap-2.5 px-4 py-2.5 rounded-2xl bg-stone-950/85 backdrop-blur-xl border border-amber-500/40 shadow-2xl text-xs text-stone-200 pointer-events-auto hover:border-amber-400 transition-all group"
@@ -298,7 +299,25 @@ export function MonumentAnimatedBackground({
             <span>Switch</span>
             <ChevronRight className="w-3.5 h-3.5" />
           </button>
+
+          <button
+            onClick={() => setIsIndicatorDismissed(true)}
+            title="Dismiss badge (or click icon to restore)"
+            className="p-1.5 rounded-xl hover:bg-stone-800 text-stone-400 hover:text-stone-200 transition-colors"
+          >
+            <X className="w-3.5 h-3.5" />
+          </button>
         </aside>
+      )}
+
+      {showBackdropIndicator && isFixed && isIndicatorDismissed && (
+        <button
+          onClick={() => setIsIndicatorDismissed(false)}
+          className="fixed bottom-5 right-5 z-40 p-2.5 rounded-full bg-stone-950/85 hover:bg-amber-500 text-amber-400 hover:text-stone-950 backdrop-blur-xl border border-amber-500/40 shadow-2xl transition-all pointer-events-auto"
+          title="Show Heritage Atmosphere Badge"
+        >
+          <Sparkles className="w-4 h-4" />
+        </button>
       )}
 
       {/* 5. Main Page Content */}
