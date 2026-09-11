@@ -17,6 +17,7 @@ import { AskBharatPage } from '@/pages/AskBharatPage';
 import { NearMePage } from '@/pages/NearMePage';
 import { LoginPage } from '@/pages/LoginPage';
 import { HeritageAudioPlayer } from '@/components/HeritageAudioPlayer';
+import { GlobalAIChatWidget } from '@/components/GlobalAIChatWidget';
 
 function App() {
   const route = useRouter();
@@ -82,6 +83,9 @@ function App() {
       <Navbar />
       {page}
       <Footer />
+      {/* Global Floating Heritage AI (ChatGPT / Gemini) Widget */}
+      {route.name !== 'ask-bharat' && <GlobalAIChatWidget />}
+
       {/* Persistent Global Heritage Audio Player & Voice Guide */}
       <HeritageAudioPlayer
         currentNarration={currentNarration}
