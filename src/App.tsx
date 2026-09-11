@@ -15,6 +15,7 @@ import { ReelsPage } from '@/pages/ReelsPage';
 import { IdentifyPage } from '@/pages/IdentifyPage';
 import { AskBharatPage } from '@/pages/AskBharatPage';
 import { NearMePage } from '@/pages/NearMePage';
+import { LoginPage } from '@/pages/LoginPage';
 import { HeritageAudioPlayer } from '@/components/HeritageAudioPlayer';
 
 function App() {
@@ -68,6 +69,9 @@ function App() {
       break;
     case 'near-me':
       page = <NearMePage />;
+      break;
+    case 'login':
+      page = <LoginPage />;
       break;
     default:
       page = <HomePage onPlayAudioGuide={handlePlayAudioGuide} />;

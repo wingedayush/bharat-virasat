@@ -1,6 +1,7 @@
-import { Compass, MapPin, Users, Trophy, Route as RouteIcon, GitCompare, Video, Camera, Sparkles, Navigation, Landmark } from 'lucide-react';
+import { Compass, MapPin, Users, Trophy, Route as RouteIcon, GitCompare, Video, Camera, Sparkles, Navigation, Landmark, LogIn, User as UserIcon } from 'lucide-react';
 import { navigate } from '@/hooks/useRouter';
 import { useProgress } from '@/hooks/useProgress';
+import { useAuth } from '@/hooks/useAuth';
 
 const navItems = [
   { label: 'Home', path: '/', icon: Compass },
@@ -18,6 +19,7 @@ const navItems = [
 
 export function Navbar() {
   const { progress } = useProgress();
+  const { user, isLoggedIn } = useAuth();
 
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 bg-stone-900/95 backdrop-blur-md border-b border-amber-900/30">
@@ -52,11 +54,43 @@ export function Navbar() {
             })}
           </div>
 
-          <div className="flex items-center gap-2 pl-2 border-l border-stone-700">
-            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-amber-500/10 border border-amber-500/30">
+          <div className="flex items-center gap-2 pl-2 border-l border-stone-700 shrink-0">
+            {/* Points Counter */}
+            <div className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-amber-500/10 border border-amber-500/30">
               <Trophy className="w-4 h-4 text-amber-400" />
               <span className="text-amber-400 font-bold text-sm">{progress.totalPoints}</span>
             </div>
+
+            {/* Login / Student Pass Action Button */}
+            {isLoggedIn && user ? (
+              <button
+                onClick={() => navigate('/login')}
+                className="flex items-center gap-2 p-1.5 sm:px-3 sm:py-1.5 rounded-2xl bg-amber-500/20 hover:bg-amber-500 hover:text-stone-950 text-amber-300 border border-amber-500/40 text-xs font-bold transition-all shadow-sm cursor-pointer group"
+                title="View Student Profile & Innovation Pass"
+              >
+                <img
+                  src={user.avatar}
+                  alt={user.name}
+                  className="w-6 h-6 rounded-full object-cover border border-amber-400"
+                  onError={(e) => {
+                    e.currentTarget.src = 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&q=80';
+                  }}
+                />
+                <span className="hidden sm:inline group-hover:text-stone-950">{user.name.split(' ')[0]}</span>
+                <span className="hidden md:inline px-1.5 py-0.2 rounded bg-amber-500/30 text-[10px] text-amber-200">
+                  {user.role === 'student_innovator' ? 'Student' : 'Scholar'}
+                </span>
+              </button>
+            ) : (
+              <button
+                onClick={() => navigate('/login')}
+                className="flex items-center gap-1.5 px-3.5 py-2 rounded-2xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-stone-950 text-xs font-black transition-all shadow-md shadow-amber-900/30 hover:scale-105 cursor-pointer"
+                title="Sign In or Get Student Innovation Pass"
+              >
+                <LogIn className="w-4 h-4" />
+                <span>Student Pass</span>
+              </button>
+            )}
           </div>
         </div>
       </div>

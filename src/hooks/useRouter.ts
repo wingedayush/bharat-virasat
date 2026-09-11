@@ -14,13 +14,15 @@ export type Route =
   | { name: 'identify' }
   | { name: 'ask-bharat' }
   | { name: 'near-me' }
-  | { name: 'unesco' };
+  | { name: 'unesco' }
+  | { name: 'login' };
 
 function parseHash(): Route {
   const hash = window.location.hash.slice(1) || '/';
   const parts = hash.split('/').filter(Boolean);
 
   if (parts.length === 0) return { name: 'home' };
+  if (parts[0] === 'login') return { name: 'login' };
   if (parts[0] === 'unesco') return { name: 'unesco' };
   if (parts[0] === 'explore' && parts.length === 1) return { name: 'explore' };
   if (parts[0] === 'explore' && parts[1] === 'state' && parts[2]) return { name: 'state-detail', stateId: parts[2] };
