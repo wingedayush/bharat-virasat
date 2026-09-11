@@ -169,54 +169,8 @@ export function HomePage({ onPlayAudioGuide }: HomePageProps) {
           ❯
         </button>
 
-        {/* Floating Content Box */}
-        <div className="relative z-20 text-center px-4 max-w-5xl mx-auto pt-20 pb-12 animate-fade-in">
-          {/* Badge */}
-          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-black/70 border border-amber-500/50 backdrop-blur-md mb-5 shadow-2xl">
-            <Sparkles className="w-4 h-4 text-amber-400 animate-spin-slow" />
-            <span className="text-amber-300 text-xs sm:text-sm font-bold tracking-wider uppercase font-serif">
-              {heroSlides[currentSlide].tag} • Student Innovation Platform
-            </span>
-          </div>
-
-          <h1 className="text-4xl sm:text-6xl md:text-7xl lg:text-8xl font-black text-white mb-4 tracking-tight leading-tight drop-shadow-2xl">
-            Bharat<span className="bg-gradient-to-r from-amber-300 via-amber-400 to-orange-500 bg-clip-text text-transparent">Virasat</span>
-          </h1>
-
-          <p className="text-sm sm:text-lg md:text-xl text-stone-200 mb-8 max-w-3xl mx-auto leading-relaxed drop-shadow font-medium">
-            {heroSlides[currentSlide].subtitle}
-          </p>
-
-          {/* Action CTAs */}
-          <div className="flex flex-wrap gap-3 sm:gap-4 justify-center items-center">
-            <button
-              onClick={() => navigate('/unesco')}
-              className="px-6 sm:px-8 py-3.5 sm:py-4 rounded-2xl bg-gradient-to-r from-amber-500 via-amber-400 to-orange-600 text-stone-950 font-black text-xs sm:text-sm shadow-2xl shadow-amber-900/50 hover:scale-105 transition-all flex items-center gap-2 cursor-pointer border border-amber-400/40"
-            >
-              <Landmark className="w-4 h-4 text-stone-950" />
-              <span>Enter Full-Screen UNESCO Cinema</span>
-            </button>
-
-            <button
-              onClick={() => navigate('/login')}
-              className="px-5 sm:px-7 py-3.5 sm:py-4 rounded-2xl bg-black/70 backdrop-blur-md border border-amber-500/50 text-amber-300 font-bold text-xs sm:text-sm hover:bg-amber-500 hover:text-stone-950 transition-all flex items-center gap-2 shadow-xl hover:scale-105 cursor-pointer"
-            >
-              <GraduationCap className="w-4 h-4" />
-              <span>Student Pass & Demo Login</span>
-            </button>
-
-            <button
-              onClick={() => navigate('/identify')}
-              className="px-5 sm:px-6 py-3.5 sm:py-4 rounded-2xl bg-stone-900/80 backdrop-blur-md border border-stone-700 text-stone-200 font-semibold text-xs sm:text-sm hover:text-white hover:bg-stone-800 transition-colors flex items-center gap-2 cursor-pointer"
-            >
-              <Camera className="w-4 h-4 text-teal-400" />
-              <span>AI Camera Lens</span>
-            </button>
-          </div>
-        </div>
-
         {/* Slide Indicators at Bottom */}
-        <div className="absolute bottom-5 left-0 right-0 flex justify-center gap-2.5 z-20">
+        <div className="absolute bottom-6 left-0 right-0 flex justify-center gap-2.5 z-20">
           {heroSlides.map((_, idx) => (
             <button
               key={idx}
@@ -229,6 +183,55 @@ export function HomePage({ onPlayAudioGuide }: HomePageProps) {
               title={'Slide ' + (idx + 1)}
             />
           ))}
+        </div>
+      </section>
+
+      {/* Quick Heritage Discovery Bar (Cleanly situated below the pure video animation) */}
+      <section className="bg-stone-900/90 border-b border-stone-800 py-4 px-4">
+        <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-4">
+          <div className="flex items-center gap-2">
+            <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping" />
+            <span className="text-xs font-bold text-amber-400 uppercase tracking-wider">
+              BharatVirasat • Discover, Experience & Preserve
+            </span>
+          </div>
+
+          <div className="flex flex-wrap gap-2.5 items-center">
+            <button
+              onClick={() => navigate('/unesco')}
+              className="px-4 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-orange-600 text-stone-950 font-bold text-xs shadow-md hover:scale-105 transition-all flex items-center gap-1.5 cursor-pointer"
+            >
+              <Landmark className="w-3.5 h-3.5" />
+              <span>32 UNESCO Wonders</span>
+            </button>
+
+            <button
+              onClick={() => navigate('/login')}
+              className="px-4 py-2 rounded-xl bg-stone-800 hover:bg-stone-700 text-amber-300 font-bold text-xs border border-amber-500/30 transition-all flex items-center gap-1.5 cursor-pointer"
+            >
+              <GraduationCap className="w-3.5 h-3.5" />
+              <span>Student Pass</span>
+            </button>
+
+            <button
+              onClick={() => navigate('/identify')}
+              className="px-4 py-2 rounded-xl bg-stone-800 hover:bg-stone-700 text-stone-200 font-semibold text-xs border border-stone-700 transition-colors flex items-center gap-1.5 cursor-pointer"
+            >
+              <Camera className="w-3.5 h-3.5 text-teal-400" />
+              <span>AI Camera Lens</span>
+            </button>
+
+            <button
+              onClick={() => {
+                const el = document.getElementById('sanctum-3d');
+                if (el) el.scrollIntoView({ behavior: 'smooth' });
+              }}
+              className="px-4 py-2 rounded-xl bg-stone-800 hover:bg-stone-700 text-stone-200 font-semibold text-xs border border-stone-700 transition-colors flex items-center gap-1.5 cursor-pointer"
+            >
+              <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+              <span>3D Sanctum</span>
+            </button>
+          </div>
         </div>
       </section>
 
