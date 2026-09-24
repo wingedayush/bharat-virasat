@@ -16,6 +16,8 @@ import { IdentifyPage } from '@/pages/IdentifyPage';
 import { AskBharatPage } from '@/pages/AskBharatPage';
 import { NearMePage } from '@/pages/NearMePage';
 import { LoginPage } from '@/pages/LoginPage';
+import { AsiPortalPage } from '@/pages/AsiPortalPage';
+import { Monument3DPage } from '@/pages/Monument3DPage';
 import { HeritageAudioPlayer } from '@/components/HeritageAudioPlayer';
 import { GlobalAIChatWidget } from '@/components/GlobalAIChatWidget';
 
@@ -34,6 +36,12 @@ function App() {
       break;
     case 'unesco':
       page = <UnescoPage onPlayAudioGuide={handlePlayAudioGuide} />;
+      break;
+    case 'asi':
+      page = <AsiPortalPage />;
+      break;
+    case '3d-view':
+      page = <Monument3DPage onPlayAudioGuide={handlePlayAudioGuide} />;
       break;
     case 'explore':
       page = <ExplorePage />;

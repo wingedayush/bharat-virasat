@@ -1,11 +1,13 @@
-import { Compass, MapPin, Users, Trophy, Route as RouteIcon, GitCompare, Video, Camera, Sparkles, Navigation, Landmark, LogIn, User as UserIcon } from 'lucide-react';
+import { Compass, MapPin, Users, Trophy, Route as RouteIcon, GitCompare, Video, Camera, Sparkles, Navigation, Landmark, LogIn, User as UserIcon, Layers, ShieldCheck } from 'lucide-react';
 import { navigate } from '@/hooks/useRouter';
 import { useProgress } from '@/hooks/useProgress';
 import { useAuth } from '@/hooks/useAuth';
 
 const navItems = [
   { label: 'Home', path: '/', icon: Compass },
-  { label: 'UNESCO', path: '/unesco', icon: Landmark, highlight: true },
+  { label: 'ASI Portal', path: '/asi', icon: ShieldCheck, highlight: true },
+  { label: '3D View', path: '/3d-view', icon: Layers, highlight: true },
+  { label: 'UNESCO', path: '/unesco', icon: Landmark },
   { label: 'Explore', path: '/explore', icon: MapPin },
   { label: 'Artisans', path: '/artisans', icon: Users },
   { label: 'Reels', path: '/reels', icon: Video },

@@ -22,21 +22,24 @@ export function Footer() {
           </div>
 
           <div>
-            <h4 className="text-white font-semibold mb-3 text-sm uppercase tracking-wider">Explore</h4>
+            <h4 className="text-white font-semibold mb-3 text-sm uppercase tracking-wider">Heritage & 3D</h4>
             <ul className="space-y-2 text-sm">
-              <li><button onClick={() => navigate('/explore')} className="text-stone-400 hover:text-amber-400 transition-colors">Cultural Map</button></li>
-              <li><button onClick={() => navigate('/artisans')} className="text-stone-400 hover:text-amber-400 transition-colors">Artisan Stories</button></li>
-              <li><button onClick={() => navigate('/reels')} className="text-stone-400 hover:text-amber-400 transition-colors">Culture Reels</button></li>
-              <li><button onClick={() => navigate('/identify')} className="text-stone-400 hover:text-amber-400 transition-colors">Identify Object</button></li>
+              <li><button onClick={() => navigate('/asi')} className="text-amber-400 hover:text-amber-300 font-semibold transition-colors">🏛️ ASI Portal & Circles</button></li>
+              <li><button onClick={() => navigate('/3d-view')} className="text-cyan-400 hover:text-cyan-300 font-semibold transition-colors">🌐 Real 3D Monument View</button></li>
+              <li><button onClick={() => navigate('/unesco')} className="text-stone-400 hover:text-amber-400 transition-colors">32 UNESCO Inscriptions</button></li>
+              <li><button onClick={() => navigate('/explore')} className="text-stone-400 hover:text-amber-400 transition-colors">Cultural Map of India</button></li>
+              <li><button onClick={() => navigate('/artisans')} className="text-stone-400 hover:text-amber-400 transition-colors">Master Artisans</button></li>
             </ul>
           </div>
 
           <div>
-            <h4 className="text-white font-semibold mb-3 text-sm uppercase tracking-wider">Engage</h4>
+            <h4 className="text-white font-semibold mb-3 text-sm uppercase tracking-wider">ASI E-Services</h4>
             <ul className="space-y-2 text-sm">
+              <li><button onClick={() => navigate('/asi')} className="text-stone-400 hover:text-amber-400 transition-colors">Monument E-Tickets</button></li>
+              <li><button onClick={() => navigate('/asi')} className="text-stone-400 hover:text-amber-400 transition-colors">Site Museums Directory</button></li>
+              <li><button onClick={() => navigate('/asi')} className="text-stone-400 hover:text-amber-400 transition-colors">AMASR Act 1958/2010</button></li>
               <li><button onClick={() => navigate('/quiz')} className="text-stone-400 hover:text-amber-400 transition-colors">Heritage Quiz</button></li>
-              <li><button onClick={() => navigate('/journey')} className="text-stone-400 hover:text-amber-400 transition-colors">My Journey</button></li>
-              <li><button onClick={() => navigate('/compare')} className="text-stone-400 hover:text-amber-400 transition-colors">Compare Cultures</button></li>
+              <li><a href="https://asi.nic.in" target="_blank" rel="noopener noreferrer" className="text-stone-400 hover:text-amber-400 transition-colors flex items-center gap-1">Official asi.nic.in &nearr;</a></li>
             </ul>
           </div>
         </div>

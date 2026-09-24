@@ -23,8 +23,10 @@ import {
   Hammer,
   Quote,
   ScrollText,
-  Compass
+  Compass,
+  Ticket
 } from 'lucide-react';
+import { navigate } from '@/hooks/useRouter';
 import { unescoMonumentsList, UnescoMonument } from '@/data/unescoMonuments';
 import { getMonumentHistoryProfile, MonumentHistoricalProfile } from '@/data/monumentHistoricalProfiles';
 import { Monument3DViewer } from '@/components/Monument3DViewer';
@@ -881,7 +883,7 @@ export function UnescoPage({ onPlayAudioGuide }: UnescoPageProps) {
             </div>
 
             {/* Modal Bottom Action Footer */}
-            <div className="p-4 bg-stone-950 border-t border-stone-800 grid grid-cols-3 gap-2 sm:gap-3 shrink-0">
+            <div className="p-4 bg-stone-950 border-t border-stone-800 grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3 shrink-0">
               <button
                 onClick={() => {
                   const m = detailMonument;
@@ -892,6 +894,17 @@ export function UnescoPage({ onPlayAudioGuide }: UnescoPageProps) {
               >
                 <Eye className="w-4 h-4" />
                 <span className="truncate">3D Sanctum</span>
+              </button>
+
+              <button
+                onClick={() => {
+                  setDetailMonument(null);
+                  navigate('/asi');
+                }}
+                className="py-3 px-3 rounded-2xl bg-amber-500/15 hover:bg-amber-500 hover:text-stone-950 text-amber-300 border border-amber-500/40 text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+              >
+                <Ticket className="w-4 h-4" />
+                <span className="truncate">ASI E-Ticket</span>
               </button>
 
               <button

@@ -18,7 +18,11 @@ import {
   ChevronLeft,
   ChevronRight,
   Flame,
-  GraduationCap
+  GraduationCap,
+  Shield,
+  Layers,
+  Ticket,
+  ExternalLink
 } from 'lucide-react';
 import { navigate } from '@/hooks/useRouter';
 import { states } from '@/data/states';
@@ -111,6 +115,8 @@ export function HomePage({ onPlayAudioGuide }: HomePageProps) {
   };
 
   const gateways = [
+    { icon: Shield, title: 'Archaeological Survey of India', desc: '24 Circles, 3,696+ protected monuments & E-Tickets', path: '/asi', color: 'from-amber-600 to-red-600', badge: 'ASI Official' },
+    { icon: Layers, title: 'Real 3D Virtual Heritage', desc: 'LiDAR point clouds, procedural PBR textures & solar dial', path: '/3d-view', color: 'from-cyan-500 to-blue-600', badge: '3D WebGL' },
     { icon: Landmark, title: '32 UNESCO Heritage Sites', desc: 'Full-Screen Cinema & Procedural Soundtrack', path: '/unesco', color: 'from-amber-500 to-orange-600', badge: 'Featured' },
     { icon: GraduationCap, title: 'Student Innovation Pass', desc: 'National hackathon showcase & profile badges', path: '/login', color: 'from-amber-500 to-yellow-600', badge: 'Auth Portal' },
     { icon: Camera, title: 'BharatLens AI Camera', desc: 'Live camera GI weave & monument authenticator', path: '/identify', color: 'from-emerald-500 to-teal-600', badge: 'Live AI' },
@@ -192,19 +198,35 @@ export function HomePage({ onPlayAudioGuide }: HomePageProps) {
           {/* Prominent Action CTAs */}
           <div className="flex flex-wrap gap-3 sm:gap-4 justify-center items-center">
             <button
-              onClick={() => navigate('/unesco')}
+              onClick={() => navigate('/asi')}
               className="px-6 sm:px-8 py-3.5 sm:py-4 rounded-2xl bg-gradient-to-r from-amber-500 via-amber-400 to-orange-600 text-stone-950 font-black text-xs sm:text-sm shadow-2xl shadow-amber-900/60 hover:scale-105 active:scale-95 transition-all flex items-center gap-2 cursor-pointer border border-amber-300/50 hover:shadow-amber-500/40"
             >
-              <Landmark className="w-4 h-4 text-stone-950" />
-              <span>Explore 32 UNESCO Wonders</span>
+              <Shield className="w-4 h-4 text-stone-950" />
+              <span>ASI Official Portal & Passes</span>
+            </button>
+
+            <button
+              onClick={() => navigate('/3d-view')}
+              className="px-5 sm:px-7 py-3.5 sm:py-4 rounded-2xl bg-cyan-950/80 backdrop-blur-md border border-cyan-500/50 text-cyan-300 font-bold text-xs sm:text-sm hover:bg-cyan-500 hover:text-stone-950 transition-all flex items-center gap-2 shadow-xl hover:scale-105 active:scale-95 cursor-pointer"
+            >
+              <Layers className="w-4 h-4" />
+              <span>Real 3D Virtual Heritage</span>
+            </button>
+
+            <button
+              onClick={() => navigate('/unesco')}
+              className="px-5 sm:px-6 py-3.5 sm:py-4 rounded-2xl bg-stone-900/80 backdrop-blur-md border border-stone-700 text-stone-200 font-semibold text-xs sm:text-sm hover:text-white hover:bg-stone-800 transition-colors flex items-center gap-2 cursor-pointer shadow-lg"
+            >
+              <Landmark className="w-4 h-4 text-amber-400" />
+              <span>32 UNESCO Wonders</span>
             </button>
 
             <button
               onClick={() => navigate('/login')}
-              className="px-5 sm:px-7 py-3.5 sm:py-4 rounded-2xl bg-stone-950/80 backdrop-blur-md border border-amber-500/50 text-amber-300 font-bold text-xs sm:text-sm hover:bg-amber-500 hover:text-stone-950 transition-all flex items-center gap-2 shadow-xl hover:scale-105 active:scale-95 cursor-pointer"
+              className="px-5 sm:px-6 py-3.5 sm:py-4 rounded-2xl bg-stone-950/80 backdrop-blur-md border border-amber-500/50 text-amber-300 font-bold text-xs sm:text-sm hover:bg-amber-500 hover:text-stone-950 transition-all flex items-center gap-2 shadow-xl hover:scale-105 active:scale-95 cursor-pointer"
             >
               <GraduationCap className="w-4 h-4" />
-              <span>Student Pass & Demo Login</span>
+              <span>Student Pass</span>
             </button>
 
             <button
@@ -213,17 +235,6 @@ export function HomePage({ onPlayAudioGuide }: HomePageProps) {
             >
               <Camera className="w-4 h-4 text-teal-400" />
               <span>BharatLens AI Camera</span>
-            </button>
-
-            <button
-              onClick={() => {
-                const el = document.getElementById('sanctum-3d');
-                if (el) el.scrollIntoView({ behavior: 'smooth' });
-              }}
-              className="px-5 sm:px-6 py-3.5 sm:py-4 rounded-2xl bg-stone-900/80 backdrop-blur-md border border-stone-700 text-stone-200 font-semibold text-xs sm:text-sm hover:text-white hover:bg-stone-800 transition-colors flex items-center gap-2 cursor-pointer shadow-lg"
-            >
-              <Sparkles className="w-4 h-4 text-amber-400" />
-              <span>3D Archaeo-Sanctum</span>
             </button>
           </div>
         </div>
@@ -511,7 +522,7 @@ export function HomePage({ onPlayAudioGuide }: HomePageProps) {
       </section>
 
       {/* 5. 3D VIRTUAL SANCTUM ARCHAEOLOGICAL VIEWER */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 py-20">
+      <section id="sanctum-3d" className="max-w-7xl mx-auto px-4 sm:px-6 py-20">
         <div className="flex flex-wrap items-end justify-between gap-4 mb-8">
           <div>
             <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-400 text-xs font-bold uppercase tracking-wider mb-3 shadow-md">
@@ -519,34 +530,116 @@ export function HomePage({ onPlayAudioGuide }: HomePageProps) {
               <span>Interactive 3D Virtual Sanctum</span>
             </div>
             <h2 className="text-3xl sm:text-5xl font-black text-white mb-2">
-              Examine Ancient Architectural Engineering in 3D
+              Examine Ancient Architectural Engineering in Real 3D
             </h2>
             <p className="text-stone-400 text-base max-w-2xl">
-              Rotate, inspect stone geometries, switch dynamic lighting from Golden Hour Aarti to Diya Lantern night, and discover the hidden engineering secrets of India's iconic monuments.
+              Rotate in 360° with smooth OrbitControls, examine LiDAR laser point clouds, inspect procedural PBR Makrana marble and red sandstone textures, and track the solar sundial shadows.
             </p>
           </div>
 
-          {/* Monument Selector Tabs */}
-          <div className="flex flex-wrap gap-2">
-            {unescoMonumentsList.slice(0, 5).map((m) => (
-              <button
-                key={m.id}
-                onClick={() => setSelected3DMonument(m)}
-                className={'px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ' + (
-                  selected3DMonument.id === m.id
-                    ? 'bg-amber-500 text-stone-950 shadow-lg shadow-amber-900/30 scale-105'
-                    : 'bg-stone-900 text-stone-400 hover:text-white hover:bg-stone-800 border border-stone-800'
-                )}
-              >
-                {m.name.split(',')[0]}
-              </button>
-            ))}
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => navigate('/3d-view')}
+              className="px-4 py-2.5 rounded-2xl bg-cyan-500 text-stone-950 font-black text-xs hover:bg-cyan-400 transition-all flex items-center gap-1.5 shadow-lg shadow-cyan-950/40 cursor-pointer"
+            >
+              <Layers className="w-4 h-4" />
+              <span>Dedicated 3D Arena</span>
+            </button>
+            <button
+              onClick={() => navigate('/asi')}
+              className="px-4 py-2.5 rounded-2xl bg-stone-900 border border-amber-500/30 text-amber-400 font-bold text-xs hover:bg-stone-800 transition-colors flex items-center gap-1.5"
+            >
+              <Ticket className="w-4 h-4" />
+              <span>Book ASI Ticket</span>
+            </button>
           </div>
         </div>
 
         {/* 3D Viewer Container */}
         <div className="rounded-3xl overflow-hidden border border-amber-900/40 shadow-2xl bg-stone-900">
-          <Monument3DViewer monument={selected3DMonument} />
+          <Monument3DViewer
+            monument={selected3DMonument}
+            onSelectMonument={(m) => setSelected3DMonument(m)}
+            onPlayAudioGuide={onPlayAudioGuide}
+          />
+        </div>
+      </section>
+
+      {/* 5B. ARCHAEOLOGICAL SURVEY OF INDIA (ASI) SPOTLIGHT BANNER */}
+      <section className="bg-gradient-to-r from-stone-900 via-amber-950/40 to-stone-900 border-y border-amber-900/40 py-16">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6">
+          <div className="bg-stone-950/80 border border-amber-500/30 rounded-3xl p-6 sm:p-10 shadow-2xl backdrop-blur-md">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-center">
+              <div className="lg:col-span-2 space-y-4">
+                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-400 text-xs font-mono font-bold uppercase tracking-wider">
+                  <Shield className="w-4 h-4" />
+                  <span>Ministry of Culture • Archaeological Survey of India (ASI)</span>
+                </div>
+                <h3 className="text-2xl sm:text-4xl font-black text-white">
+                  Preserving 3,696+ National Monuments Across 24 Archaeological Circles
+                </h3>
+                <p className="text-sm text-stone-300 leading-relaxed max-w-2xl">
+                  Explore the official heritage framework of India. Book computer-verified E-Tickets via PayGov, discover 45+ site museums with ancient excavated antiquities, inspect epigraphical inscriptions, and review the statutory AMASR Act 1958/2010 preservation guidelines.
+                </p>
+
+                <div className="flex flex-wrap gap-3 pt-2">
+                  <button
+                    onClick={() => navigate('/asi')}
+                    className="px-6 py-3 rounded-2xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-stone-950 font-black text-xs sm:text-sm shadow-xl transition-transform hover:scale-105 cursor-pointer flex items-center gap-2"
+                  >
+                    <Landmark className="w-4 h-4" />
+                    <span>Open ASI Official Portal</span>
+                  </button>
+
+                  <button
+                    onClick={() => navigate('/asi')}
+                    className="px-5 py-3 rounded-2xl bg-stone-900 border border-stone-700 hover:border-amber-400 text-stone-200 text-xs font-bold transition-colors flex items-center gap-2 cursor-pointer"
+                  >
+                    <Ticket className="w-4 h-4 text-amber-400" />
+                    <span>Instant E-Ticket Generator</span>
+                  </button>
+
+                  <a
+                    href="https://asi.nic.in"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="px-4 py-3 rounded-2xl bg-stone-900/60 border border-stone-800 hover:text-white text-stone-400 text-xs font-medium transition-colors flex items-center gap-1.5"
+                  >
+                    <span>Visit asi.nic.in</span>
+                    <ExternalLink className="w-3.5 h-3.5" />
+                  </a>
+                </div>
+              </div>
+
+              <div className="bg-stone-900/90 border border-amber-900/40 rounded-2xl p-5 space-y-3 text-xs">
+                <div className="text-[11px] font-bold text-amber-400 uppercase tracking-wider font-mono">
+                  Official Heritage Framework:
+                </div>
+                <div className="space-y-2 text-stone-300">
+                  <div className="flex items-center justify-between border-b border-stone-800 pb-1.5">
+                    <span className="text-stone-400">Headquarters:</span>
+                    <span className="font-semibold text-white">Dharohar Bhawan, New Delhi</span>
+                  </div>
+                  <div className="flex items-center justify-between border-b border-stone-800 pb-1.5">
+                    <span className="text-stone-400">Founded:</span>
+                    <span className="font-mono text-amber-300">1861 CE (Alexander Cunningham)</span>
+                  </div>
+                  <div className="flex items-center justify-between border-b border-stone-800 pb-1.5">
+                    <span className="text-stone-400">Active Circles:</span>
+                    <span className="font-mono text-white">24 Regional Jurisdictions</span>
+                  </div>
+                  <div className="flex items-center justify-between border-b border-stone-800 pb-1.5">
+                    <span className="text-stone-400">AMASR Act Buffer:</span>
+                    <span className="font-mono text-emerald-400 font-semibold">100m Prohibited | 200m Regulated</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-stone-400">Children under 15:</span>
+                    <span className="font-mono text-emerald-400 font-bold">100% Free Admission</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </section>
 

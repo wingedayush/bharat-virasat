@@ -15,6 +15,8 @@ export type Route =
   | { name: 'ask-bharat' }
   | { name: 'near-me' }
   | { name: 'unesco' }
+  | { name: 'asi' }
+  | { name: '3d-view' }
   | { name: 'login' };
 
 function parseHash(): Route {
@@ -24,6 +26,8 @@ function parseHash(): Route {
   if (parts.length === 0) return { name: 'home' };
   if (parts[0] === 'login') return { name: 'login' };
   if (parts[0] === 'unesco') return { name: 'unesco' };
+  if (parts[0] === 'asi') return { name: 'asi' };
+  if (parts[0] === '3d-view') return { name: '3d-view' };
   if (parts[0] === 'explore' && parts.length === 1) return { name: 'explore' };
   if (parts[0] === 'explore' && parts[1] === 'state' && parts[2]) return { name: 'state-detail', stateId: parts[2] };
   if (parts[0] === 'craft' && parts[1]) return { name: 'craft-detail', craftId: parts[1] };
