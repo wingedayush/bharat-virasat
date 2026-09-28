@@ -153,28 +153,28 @@ export function GlobalAIChatWidget() {
   };
 
   return (
-    <div className="fixed bottom-6 right-6 z-40">
-      {/* Floating Launcher Button */}
+    <div className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-40">
+      {/* Floating Launcher Button (RIGHT SIDE) */}
       {!isOpen && (
         <button
           onClick={() => setIsOpen(true)}
-          className="group relative flex items-center gap-3 px-4 py-3 rounded-full bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 text-stone-950 font-bold text-sm shadow-2xl shadow-amber-500/30 hover:shadow-amber-500/50 hover:scale-105 active:scale-95 transition-all"
+          className="group relative flex items-center gap-2.5 sm:gap-3 px-3.5 sm:px-4 py-2.5 sm:py-3 rounded-full bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 text-stone-950 font-bold text-xs sm:text-sm shadow-2xl shadow-amber-500/30 hover:shadow-amber-500/50 hover:scale-105 active:scale-95 transition-all"
         >
           <div className="relative">
-            <Bot className="w-5 h-5 text-stone-950" />
-            <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping" />
-            <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-emerald-400" />
+            <Bot className="w-4 h-4 sm:w-5 sm:h-5 text-stone-950" />
+            <span className="absolute -top-1 -right-1 w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full bg-emerald-400 animate-ping" />
+            <span className="absolute -top-1 -right-1 w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full bg-emerald-400" />
           </div>
           <span className="font-semibold tracking-wide">Ask Heritage AI</span>
-          <span className="text-[10px] uppercase font-mono px-2 py-0.5 rounded-full bg-stone-950/20 text-stone-950 font-extrabold">
+          <span className="text-[9px] sm:text-[10px] uppercase font-mono px-1.5 sm:px-2 py-0.5 rounded-full bg-stone-950/20 text-stone-950 font-extrabold">
             ChatGPT
           </span>
         </button>
       )}
 
-      {/* Floating Chat Window */}
+      {/* Floating Chat Window (RIGHT SIDE) */}
       {isOpen && (
-        <div className="w-[360px] sm:w-[420px] h-[540px] max-h-[85vh] bg-stone-950 border border-amber-500/30 rounded-2xl shadow-2xl flex flex-col overflow-hidden backdrop-blur-xl animate-in fade-in slide-in-from-bottom-5 duration-300">
+        <div className="w-[calc(100vw-32px)] sm:w-[420px] h-[540px] max-h-[85vh] bg-stone-950 border border-amber-500/30 rounded-2xl shadow-2xl flex flex-col overflow-hidden backdrop-blur-xl animate-in fade-in slide-in-from-bottom-5 origin-bottom-right duration-300">
           {/* Header */}
           <div className="p-3.5 bg-stone-900/90 border-b border-stone-800 flex items-center justify-between">
             <div className="flex items-center gap-2.5">

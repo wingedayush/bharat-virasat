@@ -30,7 +30,9 @@ import {
   createKhondaliteTexture,
   createGraniteTexture,
   createPavementTexture,
-  createWaterTexture
+  createWaterTexture,
+  createSkyTexture,
+  createGardenTexture
 } from '@/lib/threeTextures';
 
 export interface Monument3DViewerProps {
@@ -341,9 +343,13 @@ export function Monument3DViewer({
   const modelGroupRef = useRef<THREE.Group | null>(null);
   const lidarPointsRef = useRef<THREE.Points | null>(null);
   const sunLightRef = useRef<THREE.DirectionalLight | null>(null);
+  const fillLightRef = useRef<THREE.DirectionalLight | null>(null);
+  const hemiLightRef = useRef<THREE.HemisphereLight | null>(null);
   const ambientLightRef = useRef<THREE.AmbientLight | null>(null);
   const diyaLightRef = useRef<THREE.PointLight | null>(null);
   const pinMeshesGroupRef = useRef<THREE.Group | null>(null);
+  const skyMeshRef = useRef<THREE.Mesh | null>(null);
+  const waterTextureRef = useRef<THREE.CanvasTexture | null>(null);
 
   // Smooth Camera Transition State
   const isTransitioningCamera = useRef(false);
@@ -425,16 +431,29 @@ export function Monument3DViewer({
     const container = mountRef.current;
     if (!container) return;
 
-    // A. Scene Setup
+    // A. Scene Setup with Realistic Sky & Environment
     const scene = new THREE.Scene();
     sceneRef.current = scene;
-    scene.background = new THREE.Color(0x080706);
-    scene.fog = new THREE.FogExp2(0x080706, 0.026);
+    const initialSky = createSkyTexture(sunHour);
+    scene.background = initialSky;
+    scene.environment = initialSky;
+    scene.fog = new THREE.FogExp2(0x78350f, 0.011);
+
+    // Inverted Sky Sphere Dome for Immersive Horizon
+    const skyGeo = new THREE.SphereGeometry(65, 32, 24);
+    const skyMat = new THREE.MeshBasicMaterial({
+      map: initialSky,
+      side: THREE.BackSide,
+      depthWrite: false
+    });
+    const skyMesh = new THREE.Mesh(skyGeo, skyMat);
+    scene.add(skyMesh);
+    skyMeshRef.current = skyMesh;
 
     // B. Camera Setup
     const width = container.clientWidth;
     const height = container.clientHeight || 600;
-    const camera = new THREE.PerspectiveCamera(40, width / height, 0.1, 100);
+    const camera = new THREE.PerspectiveCamera(40, width / height, 0.1, 120);
     camera.position.set(0, 5, 14);
     cameraRef.current = camera;
 
@@ -460,41 +479,51 @@ export function Monument3DViewer({
     const controls = new OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;
     controls.dampingFactor = 0.05;
-    controls.maxPolarAngle = Math.PI / 2 + 0.03; // Keep above ground level
+    controls.maxPolarAngle = Math.PI / 2 + 0.02; // Keep above ground level
     controls.minDistance = 2.0;
-    controls.maxDistance = 35;
+    controls.maxDistance = 38;
     controls.target.set(0, 3, 0);
     controls.autoRotate = autoRotate;
     controls.autoRotateSpeed = 1.0;
     controlsRef.current = controls;
 
-    // E. Lighting Setup
-    const ambientLight = new THREE.AmbientLight(0xffeedd, 0.65);
-    scene.add(ambientLight);
-    ambientLightRef.current = ambientLight;
+    // E. Realistic Multi-Layer Lighting (Sky Hemisphere + Directional Sun + Soft Fill + Diya)
+    const hemiLight = new THREE.HemisphereLight(0x60a5fa, 0x92400e, 1.15);
+    scene.add(hemiLight);
+    hemiLightRef.current = hemiLight;
 
-    const sunLight = new THREE.DirectionalLight(0xffd59e, 2.2);
-    sunLight.position.set(10, 12, 8);
+    const sunLight = new THREE.DirectionalLight(0xffedd5, 2.5);
+    sunLight.position.set(12, 14, 8);
     sunLight.castShadow = true;
     sunLight.shadow.mapSize.width = 2048;
     sunLight.shadow.mapSize.height = 2048;
     sunLight.shadow.camera.near = 0.5;
-    sunLight.shadow.camera.far = 45;
-    sunLight.shadow.camera.left = -12;
-    sunLight.shadow.camera.right = 12;
-    sunLight.shadow.camera.top = 12;
-    sunLight.shadow.camera.bottom = -12;
-    sunLight.shadow.bias = -0.0004;
+    sunLight.shadow.camera.far = 50;
+    sunLight.shadow.camera.left = -16;
+    sunLight.shadow.camera.right = 16;
+    sunLight.shadow.camera.top = 16;
+    sunLight.shadow.camera.bottom = -16;
+    sunLight.shadow.bias = -0.0003;
+    sunLight.shadow.radius = 2.0;
     scene.add(sunLight);
     sunLightRef.current = sunLight;
 
-    // Warm Diya / Night Spotlight
-    const diyaLight = new THREE.PointLight(0xf97316, 1.2, 28);
+    const fillLight = new THREE.DirectionalLight(0x93c5fd, 0.45);
+    fillLight.position.set(-12, 6, -8);
+    scene.add(fillLight);
+    fillLightRef.current = fillLight;
+
+    const ambientLight = new THREE.AmbientLight(0xffeedd, 0.35);
+    scene.add(ambientLight);
+    ambientLightRef.current = ambientLight;
+
+    // Warm Diya / Night Floodlight
+    const diyaLight = new THREE.PointLight(0xf59e0b, 0.4, 32);
     diyaLight.position.set(0, 3.5, 3.5);
     scene.add(diyaLight);
     diyaLightRef.current = diyaLight;
 
-    // F. Procedural Materials
+    // F. Procedural Materials Engine with PBR Bump & Roughness Maps
     const isTaj = monument.modelPreset === 'taj-mausoleum';
     const isRedStone =
       monument.modelPreset === 'qutub-minaret' || monument.id === 'red-fort' || monument.id === 'agra-fort';
@@ -508,6 +537,8 @@ export function Monument3DViewer({
     const graniteTex = createGraniteTexture();
     const pavementTex = createPavementTexture();
     const waterTex = createWaterTexture();
+    waterTextureRef.current = waterTex;
+    const gardenTex = createGardenTexture();
 
     let baseMat: THREE.MeshStandardMaterial;
     let trimMat: THREE.MeshStandardMaterial;
@@ -516,88 +547,110 @@ export function Monument3DViewer({
       baseMat = new THREE.MeshStandardMaterial({
         map: marbleTex.map,
         roughnessMap: marbleTex.roughnessMap,
-        roughness: 0.25,
-        metalness: 0.12,
-        color: 0xfdfdfc
+        bumpMap: marbleTex.bumpMap,
+        bumpScale: 0.035,
+        roughness: 0.22,
+        metalness: 0.08,
+        color: 0xfdfdfc,
+        envMapIntensity: 1.25
       });
       trimMat = new THREE.MeshStandardMaterial({
         map: marbleTex.map,
-        roughness: 0.4,
+        bumpMap: marbleTex.bumpMap,
+        bumpScale: 0.02,
+        roughness: 0.35,
         metalness: 0.1,
-        color: 0xe5ded3
+        color: 0xeae4d8,
+        envMapIntensity: 1.1
       });
     } else if (isRedStone) {
       baseMat = new THREE.MeshStandardMaterial({
         map: sandstoneTex.map,
         bumpMap: sandstoneTex.bumpMap,
-        bumpScale: 0.05,
-        roughness: 0.75,
-        metalness: 0.08,
-        color: 0xb9472e
+        bumpScale: 0.065,
+        roughness: 0.72,
+        metalness: 0.05,
+        color: 0xb9472e,
+        envMapIntensity: 0.85
       });
       trimMat = new THREE.MeshStandardMaterial({
         map: sandstoneTex.map,
         bumpMap: sandstoneTex.bumpMap,
-        bumpScale: 0.03,
-        roughness: 0.65,
-        metalness: 0.12,
-        color: 0x8a311d
+        bumpScale: 0.04,
+        roughness: 0.62,
+        metalness: 0.1,
+        color: 0x8a311d,
+        envMapIntensity: 0.9
       });
     } else if (isBasalt) {
       baseMat = new THREE.MeshStandardMaterial({
         map: basaltTex.map,
         bumpMap: basaltTex.bumpMap,
-        bumpScale: 0.08,
+        bumpScale: 0.085,
         roughness: 0.85,
-        metalness: 0.15,
-        color: 0x4a443e
+        metalness: 0.12,
+        color: 0x443e38,
+        envMapIntensity: 0.75
       });
       trimMat = new THREE.MeshStandardMaterial({
         map: basaltTex.map,
-        roughness: 0.9,
-        color: 0x332e29
+        bumpMap: basaltTex.bumpMap,
+        bumpScale: 0.05,
+        roughness: 0.88,
+        color: 0x2e2924
       });
     } else if (isKhondalite) {
       baseMat = new THREE.MeshStandardMaterial({
         map: khondaliteTex.map,
         bumpMap: khondaliteTex.bumpMap,
-        bumpScale: 0.06,
-        roughness: 0.8,
-        metalness: 0.1,
-        color: 0x9b6745
+        bumpScale: 0.07,
+        roughness: 0.78,
+        metalness: 0.08,
+        color: 0x9b6745,
+        envMapIntensity: 0.85
       });
       trimMat = new THREE.MeshStandardMaterial({
         map: khondaliteTex.map,
-        roughness: 0.85,
+        roughness: 0.82,
         color: 0x7a4d31
       });
     } else {
       baseMat = new THREE.MeshStandardMaterial({
         map: graniteTex.map,
         bumpMap: graniteTex.bumpMap,
-        bumpScale: 0.05,
-        roughness: 0.7,
-        metalness: 0.18,
-        color: 0x9e9287
+        bumpScale: 0.06,
+        roughness: 0.68,
+        metalness: 0.15,
+        color: 0x988d82,
+        envMapIntensity: 0.9
       });
       trimMat = new THREE.MeshStandardMaterial({
         map: graniteTex.map,
-        roughness: 0.75,
-        color: 0x766b60
+        roughness: 0.74,
+        color: 0x6e6359
       });
     }
 
     const goldMat = new THREE.MeshStandardMaterial({
       color: 0xf59e0b,
-      roughness: 0.22,
-      metalness: 0.92
+      roughness: 0.18,
+      metalness: 0.94,
+      envMapIntensity: 2.2
     });
 
     const pavementMat = new THREE.MeshStandardMaterial({
       map: pavementTex.map,
       bumpMap: pavementTex.bumpMap,
-      bumpScale: 0.04,
-      roughness: 0.85
+      bumpScale: 0.045,
+      roughness: 0.82,
+      envMapIntensity: 0.6
+    });
+
+    const gardenMat = new THREE.MeshStandardMaterial({
+      map: gardenTex.map,
+      bumpMap: gardenTex.bumpMap,
+      bumpScale: 0.05,
+      roughness: 0.88
     });
 
     // G. Model Construction Group (World Coordinates Aligned)
@@ -605,16 +658,17 @@ export function Monument3DViewer({
     modelGroupRef.current = modelGroup;
     scene.add(modelGroup);
 
-    // Ground Platform
-    const ground = new THREE.Mesh(new THREE.CylinderGeometry(8.8, 9.4, 0.45, 48), pavementMat);
-    ground.position.y = -0.22;
-    ground.receiveShadow = true;
-    modelGroup.add(ground);
+    // Vast Surrounding Courtyard Landscape
+    const landscapePlane = new THREE.Mesh(new THREE.PlaneGeometry(54, 54), pavementMat);
+    landscapePlane.rotation.x = -Math.PI / 2;
+    landscapePlane.position.y = -0.22;
+    landscapePlane.receiveShadow = true;
+    modelGroup.add(landscapePlane);
 
     // Stepped Base Plinth (Jagati)
     for (let i = 0; i < 3; i++) {
       const step = new THREE.Mesh(
-        new THREE.CylinderGeometry(7.8 - i * 0.45, 8.2 - i * 0.45, 0.28, 48),
+        new THREE.CylinderGeometry(8.0 - i * 0.45, 8.4 - i * 0.45, 0.28, 48),
         trimMat
       );
       step.position.y = i * 0.28;
@@ -625,320 +679,663 @@ export function Monument3DViewer({
 
     // --- ARCHITECTURAL TYPOLOGIES ---
     if (monument.modelPreset === 'taj-mausoleum') {
-      const plinth = new THREE.Mesh(new THREE.BoxGeometry(5.4, 0.8, 5.4), trimMat);
+      // 4 Mughal Charbagh Garden Lawns
+      [
+        [-4.6, 4.6],
+        [4.6, 4.6],
+        [-4.6, -4.6],
+        [4.6, -4.6]
+      ].forEach(([gx, gz]) => {
+        const lawn = new THREE.Mesh(new THREE.BoxGeometry(4.2, 0.08, 4.2), gardenMat);
+        lawn.position.set(gx, -0.16, gz);
+        lawn.receiveShadow = true;
+        modelGroup.add(lawn);
+      });
+
+      // Raised White Marble Terrace (Square with chamfers)
+      const plinth = new THREE.Mesh(new THREE.BoxGeometry(5.6, 0.8, 5.6), trimMat);
       plinth.position.y = 1.05;
       plinth.castShadow = true;
       plinth.receiveShadow = true;
       modelGroup.add(plinth);
 
-      const body = new THREE.Mesh(new THREE.BoxGeometry(4.0, 2.9, 4.0), baseMat);
-      body.position.y = 2.85;
+      // Authentic 8-sided Hasht-Bihisht Mausoleum Body
+      const body = new THREE.Mesh(new THREE.CylinderGeometry(2.8, 2.8, 3.0, 8), baseMat);
+      body.rotation.y = Math.PI / 8;
+      body.position.y = 2.9;
       body.castShadow = true;
       body.receiveShadow = true;
       modelGroup.add(body);
 
-      // 4 Grand Arched Iwan Recesses with Pietra Dura Trim
+      // 4 Grand Vaulted Pishtaq Arches (North, South, East, West)
       for (let angle = 0; angle < Math.PI * 2; angle += Math.PI / 2) {
-        const arch = new THREE.Mesh(new THREE.CylinderGeometry(0.85, 0.85, 1.9, 20, 1, false, 0, Math.PI), trimMat);
-        arch.rotation.y = angle;
-        arch.position.set(Math.sin(angle) * 2.01, 2.75, Math.cos(angle) * 2.01);
-        modelGroup.add(arch);
+        const portal = new THREE.Group();
+        portal.position.set(Math.sin(angle) * 2.05, 2.85, Math.cos(angle) * 2.05);
+        portal.rotation.y = angle;
+
+        // Outer Frame
+        const frame = new THREE.Mesh(new THREE.BoxGeometry(1.8, 2.4, 0.35), trimMat);
+        portal.add(frame);
+
+        // Recessed Arch
+        const iwan = new THREE.Mesh(
+          new THREE.CylinderGeometry(0.72, 0.72, 2.0, 24, 1, false, 0, Math.PI),
+          trimMat
+        );
+        iwan.position.set(0, 0, -0.1);
+        portal.add(iwan);
+
+        modelGroup.add(portal);
       }
 
-      const drum = new THREE.Mesh(new THREE.CylinderGeometry(1.35, 1.4, 0.95, 36), trimMat);
-      drum.position.y = 4.55;
+      // Cylindrical Marble Drum with Arcaded Relief Band
+      const drum = new THREE.Mesh(new THREE.CylinderGeometry(1.42, 1.48, 1.1, 40), trimMat);
+      drum.position.y = 4.75;
       drum.castShadow = true;
       modelGroup.add(drum);
 
-      const dome = new THREE.Mesh(new THREE.SphereGeometry(1.55, 36, 28, 0, Math.PI * 2, 0, Math.PI * 0.72), baseMat);
-      dome.position.y = 5.2;
-      dome.scale.set(1.02, 1.34, 1.02);
+      // Authentic Mughal Bulbous Onion Dome constructed via Lathe Curve Profile
+      const domePoints: THREE.Vector2[] = [];
+      domePoints.push(new THREE.Vector2(1.36, 0.0));
+      domePoints.push(new THREE.Vector2(1.40, 0.25));
+      domePoints.push(new THREE.Vector2(1.58, 0.65));
+      domePoints.push(new THREE.Vector2(1.74, 1.15));
+      domePoints.push(new THREE.Vector2(1.76, 1.55));
+      domePoints.push(new THREE.Vector2(1.62, 2.05));
+      domePoints.push(new THREE.Vector2(1.32, 2.50));
+      domePoints.push(new THREE.Vector2(0.85, 2.90));
+      domePoints.push(new THREE.Vector2(0.42, 3.25));
+      domePoints.push(new THREE.Vector2(0.12, 3.48));
+      domePoints.push(new THREE.Vector2(0.0, 3.55));
+
+      const domeGeo = new THREE.LatheGeometry(domePoints, 48);
+      const dome = new THREE.Mesh(domeGeo, baseMat);
+      dome.position.y = 5.25;
       dome.castShadow = true;
       modelGroup.add(dome);
 
-      const finial = new THREE.Mesh(new THREE.ConeGeometry(0.2, 1.15, 20), goldMat);
-      finial.position.y = 7.35;
+      // Lotus Petal Relief Collar at dome apex
+      const lotusCollar = new THREE.Mesh(new THREE.CylinderGeometry(0.32, 0.16, 0.22, 32), trimMat);
+      lotusCollar.position.y = 8.8;
+      modelGroup.add(lotusCollar);
+
+      // Gilded Kalasha & Crescent Finial
+      const finial = new THREE.Mesh(new THREE.ConeGeometry(0.14, 1.35, 24), goldMat);
+      finial.position.y = 9.45;
+      finial.castShadow = true;
       modelGroup.add(finial);
 
-      // 4 Corner Chhatris
+      const finialBall = new THREE.Mesh(new THREE.SphereGeometry(0.16, 16, 16), goldMat);
+      finialBall.position.y = 9.0;
+      modelGroup.add(finialBall);
+
+      // 4 Corner Chhatris with authentic octagonal pillared kiosks
       [
-        [-1.3, -1.3],
-        [1.3, -1.3],
-        [-1.3, 1.3],
-        [1.3, 1.3]
+        [-1.38, -1.38],
+        [1.38, -1.38],
+        [-1.38, 1.38],
+        [1.38, 1.38]
       ].forEach(([cx, cz]) => {
-        const pillarC = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.12, 0.8, 12), trimMat);
-        pillarC.position.set(cx, 4.6, cz);
-        const domeC = new THREE.Mesh(new THREE.SphereGeometry(0.35, 16, 16), baseMat);
-        domeC.position.set(cx, 5.1, cz);
-        modelGroup.add(pillarC, domeC);
+        const chhatriGroup = new THREE.Group();
+        chhatriGroup.position.set(cx, 4.5, cz);
+
+        // 8 slender marble columns
+        for (let a = 0; a < Math.PI * 2; a += Math.PI / 4) {
+          const pil = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.045, 0.85, 12), trimMat);
+          pil.position.set(Math.sin(a) * 0.32, 0.42, Math.cos(a) * 0.32);
+          pil.castShadow = true;
+          chhatriGroup.add(pil);
+        }
+
+        // Chhatri onion cupola
+        const cDome = new THREE.Mesh(
+          new THREE.SphereGeometry(0.38, 24, 20, 0, Math.PI * 2, 0, Math.PI * 0.72),
+          baseMat
+        );
+        cDome.position.y = 0.95;
+        cDome.scale.set(1.0, 1.25, 1.0);
+        cDome.castShadow = true;
+        chhatriGroup.add(cDome);
+
+        const cFinial = new THREE.Mesh(new THREE.ConeGeometry(0.06, 0.35, 12), goldMat);
+        cFinial.position.y = 1.45;
+        chhatriGroup.add(cFinial);
+
+        modelGroup.add(chhatriGroup);
       });
 
-      // 4 Outward Tilted Corner Minarets
+      // Roof Parapet Guldastas (Miniature corner pinnacles)
+      [
+        [-2.0, -2.0],
+        [2.0, -2.0],
+        [-2.0, 2.0],
+        [2.0, 2.0]
+      ].forEach(([gx, gz]) => {
+        const guldasta = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.08, 0.9, 12), trimMat);
+        guldasta.position.set(gx, 4.75, gz);
+        modelGroup.add(guldasta);
+      });
+
+      // 4 Outward-Tilted Corner Minarets with 3 Balcony Tiers & Authentic 2-degree Tilt
       [
         [-3.4, -3.4],
         [3.4, -3.4],
         [-3.4, 3.4],
         [3.4, 3.4]
       ].forEach(([x, z]) => {
-        const minaret = new THREE.Mesh(new THREE.CylinderGeometry(0.24, 0.34, 5.4, 20), baseMat);
-        minaret.position.set(x, 3.4, z);
-        minaret.castShadow = true;
-        modelGroup.add(minaret);
+        const minaretGroup = new THREE.Group();
+        minaretGroup.position.set(x, 1.05, z);
 
+        // Architectural safety tilt: angled 2 degrees away from mausoleum
+        minaretGroup.rotation.x = z > 0 ? 0.035 : -0.035;
+        minaretGroup.rotation.z = x > 0 ? -0.035 : 0.035;
+
+        // Octagonal Base Plinth
+        const minBase = new THREE.Mesh(new THREE.CylinderGeometry(0.48, 0.52, 0.6, 8), trimMat);
+        minBase.position.y = 0.3;
+        minBase.castShadow = true;
+        minaretGroup.add(minBase);
+
+        // Fluted tapering shaft
+        const shaft = new THREE.Mesh(new THREE.CylinderGeometry(0.24, 0.36, 5.2, 28), baseMat);
+        shaft.position.y = 3.2;
+        shaft.castShadow = true;
+        minaretGroup.add(shaft);
+
+        // 3 Cantilevered Balconies
         for (let b = 1; b <= 3; b++) {
-          const balc = new THREE.Mesh(new THREE.CylinderGeometry(0.38, 0.38, 0.12, 20), trimMat);
-          balc.position.set(x, 1.6 + b * 1.25, z);
-          modelGroup.add(balc);
+          const balc = new THREE.Mesh(new THREE.CylinderGeometry(0.44, 0.38, 0.16, 24), trimMat);
+          balc.position.y = 0.8 + b * 1.4;
+          balc.castShadow = true;
+          minaretGroup.add(balc);
         }
 
-        const cupola = new THREE.Mesh(new THREE.SphereGeometry(0.3, 16, 16), goldMat);
-        cupola.position.set(x, 6.3, z);
-        modelGroup.add(cupola);
+        // Chhatri Cupola atop Minaret
+        const cupola = new THREE.Mesh(new THREE.SphereGeometry(0.32, 20, 18), goldMat);
+        cupola.position.y = 6.0;
+        minaretGroup.add(cupola);
+
+        const mFinial = new THREE.Mesh(new THREE.ConeGeometry(0.06, 0.45, 12), goldMat);
+        mFinial.position.y = 6.45;
+        minaretGroup.add(mFinial);
+
+        modelGroup.add(minaretGroup);
       });
 
-      // Reflecting Pool with Animated Living Water
+      // Long Central Reflecting Pool (Yamuna / Charbagh Water Channel)
       const waterMat = new THREE.MeshStandardMaterial({
         map: waterTex,
-        roughness: 0.1,
-        metalness: 0.85,
-        color: 0x0284c7
+        roughness: 0.06,
+        metalness: 0.92,
+        color: 0x0284c7,
+        envMapIntensity: 2.0
       });
-      const pool = new THREE.Mesh(new THREE.BoxGeometry(2.6, 0.12, 3.8), waterMat);
-      pool.position.set(0, 0.32, 4.6);
+      const pool = new THREE.Mesh(new THREE.BoxGeometry(2.8, 0.12, 6.4), waterMat);
+      pool.position.set(0, 0.32, 5.8);
+      pool.receiveShadow = true;
       modelGroup.add(pool);
+
+      const poolBorder = new THREE.Mesh(new THREE.BoxGeometry(3.1, 0.14, 6.7), trimMat);
+      poolBorder.position.set(0, 0.28, 5.8);
+      modelGroup.add(poolBorder);
+
+      // Stone Fountain Nozzles & Sparkling Water Jets along canal
+      const waterJetMat = new THREE.MeshStandardMaterial({
+        color: 0xe0f2fe,
+        roughness: 0.08,
+        metalness: 0.85,
+        transparent: true,
+        opacity: 0.8
+      });
+
+      for (let fz = 3.5; fz <= 8.2; fz += 1.5) {
+        const nozzle = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.1, 0.12, 12), trimMat);
+        nozzle.position.set(0, 0.38, fz);
+        modelGroup.add(nozzle);
+
+        const jetCone = new THREE.Mesh(new THREE.ConeGeometry(0.12, 0.65, 12), waterJetMat);
+        jetCone.position.set(0, 0.72, fz);
+        modelGroup.add(jetCone);
+      }
+
+      // Authentic Charbagh Conical Cypress Trees lining the promenade
+      const treeBarkMat = new THREE.MeshStandardMaterial({ color: 0x3d2817, roughness: 0.9 });
+      const cypressFoliageMat = new THREE.MeshStandardMaterial({ color: 0x143d1a, roughness: 0.82 });
+
+      [-1.9, 1.9].forEach((tx) => {
+        for (let tz = 3.2; tz <= 8.6; tz += 1.5) {
+          const treeGroup = new THREE.Group();
+          treeGroup.position.set(tx, 0.2, tz);
+
+          const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.07, 0.45, 10), treeBarkMat);
+          trunk.position.y = 0.22;
+          trunk.castShadow = true;
+          treeGroup.add(trunk);
+
+          const lowerCone = new THREE.Mesh(new THREE.ConeGeometry(0.3, 1.1, 12), cypressFoliageMat);
+          lowerCone.position.y = 0.9;
+          lowerCone.castShadow = true;
+          treeGroup.add(lowerCone);
+
+          const upperCone = new THREE.Mesh(new THREE.ConeGeometry(0.22, 0.9, 12), cypressFoliageMat);
+          upperCone.position.y = 1.45;
+          upperCone.castShadow = true;
+          treeGroup.add(upperCone);
+
+          modelGroup.add(treeGroup);
+        }
+      });
+
+    } else if (monument.modelPreset === 'rock-cut-caves' || monument.id === 'ellora-caves') {
+      // 3 Massive Basalt Mountain Cliff Walls (Charanandri Hills Excavated Trench)
+      const cliffL = new THREE.Mesh(new THREE.BoxGeometry(2.2, 10.5, 12.0), trimMat);
+      cliffL.position.set(-5.2, 5.0, 0);
+      cliffL.castShadow = true;
+      cliffL.receiveShadow = true;
+      modelGroup.add(cliffL);
+
+      const cliffR = new THREE.Mesh(new THREE.BoxGeometry(2.2, 10.5, 12.0), trimMat);
+      cliffR.position.set(5.2, 5.0, 0);
+      cliffR.castShadow = true;
+      cliffR.receiveShadow = true;
+      modelGroup.add(cliffR);
+
+      const cliffBack = new THREE.Mesh(new THREE.BoxGeometry(12.5, 10.5, 2.2), trimMat);
+      cliffBack.position.set(0, 5.0, -5.8);
+      cliffBack.castShadow = true;
+      cliffBack.receiveShadow = true;
+      modelGroup.add(cliffBack);
+
+      // Monolithic Plinth with Carved Elephant Row
+      const plinth = new THREE.Mesh(new THREE.BoxGeometry(4.8, 1.4, 6.2), trimMat);
+      plinth.position.set(0, 0.8, -0.6);
+      plinth.castShadow = true;
+      modelGroup.add(plinth);
+
+      // Carved Elephants Relief Along Plinth
+      [-2.1, 2.1].forEach((ex) => {
+        for (let ez = -2.8; ez <= 1.8; ez += 1.4) {
+          const elephant = new THREE.Mesh(new THREE.BoxGeometry(0.45, 0.65, 0.9), baseMat);
+          elephant.position.set(ex, 0.65, ez);
+          elephant.castShadow = true;
+          modelGroup.add(elephant);
+        }
+      });
+
+      // Vimana Tower (Mount Meru Spire with 6 Tiers)
+      for (let t = 0; t < 6; t++) {
+        const factor = (6 - t) / 6;
+        const tier = new THREE.Mesh(
+          new THREE.BoxGeometry(3.6 * factor, 0.72, 3.6 * factor),
+          t % 2 === 0 ? baseMat : trimMat
+        );
+        tier.position.set(0, 1.8 + t * 0.72, -1.2);
+        tier.castShadow = true;
+        modelGroup.add(tier);
+      }
+
+      // Barrel-Vaulted Shikhara Apex
+      const shikhara = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.8, 1.0, 16), trimMat);
+      shikhara.position.set(0, 6.4, -1.2);
+      modelGroup.add(shikhara);
+
+      // Nandi Mandapa Pavilion in Forecourt
+      const nandiPavilion = new THREE.Mesh(new THREE.BoxGeometry(2.4, 2.0, 2.4), baseMat);
+      nandiPavilion.position.set(0, 1.5, 2.4);
+      nandiPavilion.castShadow = true;
+      modelGroup.add(nandiPavilion);
+
+      // Overhead Connecting Rock Bridge
+      const bridge = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.4, 1.8), trimMat);
+      bridge.position.set(0, 2.2, 0.8);
+      modelGroup.add(bridge);
+
+      // Two Monolithic 15-meter Dhwaja Stambha Victory Pillars
+      for (const px of [-2.6, 2.6]) {
+        const pillar = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.28, 5.8, 18), trimMat);
+        pillar.position.set(px, 3.1, 2.4);
+        pillar.castShadow = true;
+        modelGroup.add(pillar);
+
+        const trishula = new THREE.Mesh(new THREE.BoxGeometry(0.65, 0.45, 0.15), goldMat);
+        trishula.position.set(px, 6.2, 2.4);
+        modelGroup.add(trishula);
+      }
 
     } else if (monument.modelPreset === 'konark-wheel') {
       const wheelGroup = new THREE.Group();
       wheelGroup.position.y = 3.6;
       modelGroup.add(wheelGroup);
 
-      const outerRim = new THREE.Mesh(new THREE.TorusGeometry(3.3, 0.46, 28, 64), baseMat);
+      // Heavy Carved Outer Rim
+      const outerRim = new THREE.Mesh(new THREE.TorusGeometry(3.4, 0.48, 32, 64), baseMat);
       outerRim.castShadow = true;
       wheelGroup.add(outerRim);
 
-      const hub = new THREE.Mesh(new THREE.CylinderGeometry(0.9, 0.9, 0.95, 36), goldMat);
+      // Carved Axle Hub
+      const hub = new THREE.Mesh(new THREE.CylinderGeometry(0.95, 0.95, 1.05, 36), goldMat);
       hub.rotation.x = Math.PI / 2;
+      hub.castShadow = true;
       wheelGroup.add(hub);
 
-      const gnomon = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.09, 1.6, 16), goldMat);
+      // Central Gnomon Pin (Casts astronomical solar shadow)
+      const gnomon = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.1, 1.8, 18), goldMat);
       gnomon.rotation.x = Math.PI / 2;
-      gnomon.position.z = 0.8;
+      gnomon.position.z = 0.95;
       gnomon.castShadow = true;
       wheelGroup.add(gnomon);
 
+      // 8 Broad Primary Spokes with Diamond Carvings & Medallions
       for (let i = 0; i < 8; i++) {
         const angle = (i * Math.PI) / 4;
-        const spoke = new THREE.Mesh(new THREE.CylinderGeometry(0.19, 0.25, 3.0, 16), trimMat);
-        spoke.position.set(Math.cos(angle) * 1.65, Math.sin(angle) * 1.65, 0);
+        const spoke = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.28, 3.1, 18), trimMat);
+        spoke.position.set(Math.cos(angle) * 1.7, Math.sin(angle) * 1.7, 0);
         spoke.rotation.z = angle - Math.PI / 2;
         spoke.castShadow = true;
         wheelGroup.add(spoke);
 
-        const med = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.3, 0.42, 16), goldMat);
+        // Circular Medallion with Relief Carving
+        const med = new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.35, 0.48, 20), goldMat);
         med.rotation.x = Math.PI / 2;
-        med.position.set(Math.cos(angle) * 1.65, Math.sin(angle) * 1.65, 0);
+        med.position.set(Math.cos(angle) * 1.7, Math.sin(angle) * 1.7, 0);
+        med.castShadow = true;
         wheelGroup.add(med);
       }
 
+      // 16 Slender Secondary Spokes (Two between each pair of primary spokes for 24 total spokes)
       for (let i = 0; i < 8; i++) {
-        const angle = (i * Math.PI) / 4 + Math.PI / 8;
-        const spoke = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.14, 2.9, 14), baseMat);
-        spoke.position.set(Math.cos(angle) * 1.65, Math.sin(angle) * 1.65, 0);
-        spoke.rotation.z = angle - Math.PI / 2;
-        spoke.castShadow = true;
-        wheelGroup.add(spoke);
+        for (const offset of [Math.PI / 12, (2 * Math.PI) / 12]) {
+          const angle = (i * Math.PI) / 4 + offset;
+          const spoke = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.14, 3.05, 16), baseMat);
+          spoke.position.set(Math.cos(angle) * 1.7, Math.sin(angle) * 1.7, 0);
+          spoke.rotation.z = angle - Math.PI / 2;
+          spoke.castShadow = true;
+          wheelGroup.add(spoke);
+        }
       }
 
-      const pillarL = new THREE.Mesh(new THREE.BoxGeometry(0.75, 3.4, 1.5), trimMat);
-      pillarL.position.set(-3.5, 1.5, 0);
-      pillarL.castShadow = true;
-      modelGroup.add(pillarL);
+      // 32 Relief Carved Beads Along Rim (Astronomical Time Markers)
+      for (let b = 0; b < 32; b++) {
+        const bAngle = (b * Math.PI * 2) / 32;
+        const bead = new THREE.Mesh(new THREE.SphereGeometry(0.12, 12, 12), goldMat);
+        bead.position.set(Math.cos(bAngle) * 3.4, Math.sin(bAngle) * 3.4, 0.28);
+        bead.castShadow = true;
+        wheelGroup.add(bead);
+      }
 
-      const pillarR = new THREE.Mesh(new THREE.BoxGeometry(0.75, 3.4, 1.5), trimMat);
-      pillarR.position.set(3.5, 1.5, 0);
-      pillarR.castShadow = true;
-      modelGroup.add(pillarR);
+      // Sculpted Chariot Flanking Horses Leaping Forward
+      for (const hx of [-2.4, -0.8, 0.8, 2.4]) {
+        const horse = new THREE.Mesh(new THREE.BoxGeometry(0.45, 1.2, 1.8), trimMat);
+        horse.position.set(hx, 1.1, 2.8);
+        horse.castShadow = true;
+        modelGroup.add(horse);
+      }
+
+      // Stepped Temple Plinth Framing Wheels
+      const plinthWall = new THREE.Mesh(new THREE.BoxGeometry(8.2, 2.2, 2.0), trimMat);
+      plinthWall.position.set(0, 1.1, -1.2);
+      plinthWall.castShadow = true;
+      modelGroup.add(plinthWall);
 
     } else if (monument.modelPreset === 'qutub-minaret') {
-      const storeyHeights = [2.3, 1.85, 1.55, 1.35, 1.15];
-      const bottomRadii = [1.45, 1.2, 0.98, 0.78, 0.6];
-      const topRadii = [1.2, 0.98, 0.78, 0.6, 0.44];
+      const storeyHeights = [2.6, 2.0, 1.7, 1.45, 1.25];
+      const bottomRadii = [1.5, 1.25, 1.02, 0.82, 0.62];
+      const topRadii = [1.25, 1.02, 0.82, 0.62, 0.46];
 
       let currentY = 0.5;
       for (let s = 0; s < 5; s++) {
         const h = storeyHeights[s];
         const rB = bottomRadii[s];
         const rT = topRadii[s];
-        const isUpper = s >= 3;
+        const isUpperMarble = s >= 3;
 
-        const tier = new THREE.Mesh(new THREE.CylinderGeometry(rT, rB, h, 28), isUpper ? baseMat : trimMat);
+        // Storey Cylinder with Fluted Ribs
+        const tier = new THREE.Mesh(
+          new THREE.CylinderGeometry(rT, rB, h, 32),
+          isUpperMarble ? baseMat : trimMat
+        );
         tier.position.y = currentY + h / 2;
         tier.castShadow = true;
         modelGroup.add(tier);
 
-        const balc = new THREE.Mesh(new THREE.CylinderGeometry(rT + 0.24, rT + 0.16, 0.24, 28), goldMat);
+        // Projecting Stalactite Muqarnas Balcony
+        const balc = new THREE.Mesh(
+          new THREE.CylinderGeometry(rT + 0.32, rT + 0.18, 0.28, 32),
+          goldMat
+        );
         balc.position.y = currentY + h;
         balc.castShadow = true;
         modelGroup.add(balc);
 
-        currentY += h + 0.12;
+        currentY += h + 0.14;
       }
 
-      const topCupola = new THREE.Mesh(new THREE.ConeGeometry(0.42, 0.85, 18), goldMat);
-      topCupola.position.y = currentY + 0.42;
+      // Top Cupola
+      const topCupola = new THREE.Mesh(new THREE.ConeGeometry(0.44, 0.95, 20), goldMat);
+      topCupola.position.y = currentY + 0.48;
+      topCupola.castShadow = true;
       modelGroup.add(topCupola);
 
+      // 1,600-Year-Old Gupta Rustless Iron Pillar
       const ironPillarMat = new THREE.MeshStandardMaterial({
-        color: 0x27272a,
-        roughness: 0.35,
-        metalness: 0.88
+        color: 0x222224,
+        roughness: 0.32,
+        metalness: 0.92
       });
-      const ironPillar = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.15, 3.4, 16), ironPillarMat);
-      ironPillar.position.set(2.8, 1.7, 1.8);
+      const ironPillar = new THREE.Mesh(new THREE.CylinderGeometry(0.14, 0.18, 3.8, 20), ironPillarMat);
+      ironPillar.position.set(3.2, 1.9, 1.8);
       ironPillar.castShadow = true;
       modelGroup.add(ironPillar);
 
+      const ironCapital = new THREE.Mesh(new THREE.CylinderGeometry(0.24, 0.15, 0.35, 20), ironPillarMat);
+      ironCapital.position.set(3.2, 3.9, 1.8);
+      modelGroup.add(ironCapital);
+
     } else if (monument.modelPreset === 'buddhist-stupa') {
-      const drum = new THREE.Mesh(new THREE.CylinderGeometry(3.9, 4.1, 1.3, 44), trimMat);
-      drum.position.y = 1.1;
+      // Raised Medhi Circular Terrace
+      const drum = new THREE.Mesh(new THREE.CylinderGeometry(4.2, 4.4, 1.4, 48), trimMat);
+      drum.position.y = 1.15;
       drum.receiveShadow = true;
+      drum.castShadow = true;
       modelGroup.add(drum);
 
-      const anda = new THREE.Mesh(new THREE.SphereGeometry(3.5, 44, 28, 0, Math.PI * 2, 0, Math.PI * 0.5), baseMat);
-      anda.position.y = 1.75;
+      // Hemispherical Anda Dome
+      const anda = new THREE.Mesh(
+        new THREE.SphereGeometry(3.8, 48, 32, 0, Math.PI * 2, 0, Math.PI * 0.5),
+        baseMat
+      );
+      anda.position.y = 1.85;
       anda.castShadow = true;
       modelGroup.add(anda);
 
-      const harmika = new THREE.Mesh(new THREE.BoxGeometry(1.35, 0.75, 1.35), trimMat);
-      harmika.position.y = 5.3;
+      // Square Harmika Balustrade
+      const harmika = new THREE.Mesh(new THREE.BoxGeometry(1.45, 0.82, 1.45), trimMat);
+      harmika.position.y = 5.7;
+      harmika.castShadow = true;
       modelGroup.add(harmika);
 
+      // Triple Chhatravali Umbrella Spire
       for (let c = 0; c < 3; c++) {
-        const chhatra = new THREE.Mesh(new THREE.CylinderGeometry(0.88 - c * 0.19, 0.98 - c * 0.19, 0.15, 24), goldMat);
-        chhatra.position.y = 5.9 + c * 0.4;
+        const chhatra = new THREE.Mesh(
+          new THREE.CylinderGeometry(0.92 - c * 0.2, 1.05 - c * 0.2, 0.16, 28),
+          goldMat
+        );
+        chhatra.position.y = 6.3 + c * 0.42;
+        chhatra.castShadow = true;
         modelGroup.add(chhatra);
       }
 
+      // 4 Monumental Carved Torana Gateways (North, South, East, West)
       for (let t = 0; t < 4; t++) {
         const angle = (t * Math.PI) / 2;
         const torana = new THREE.Group();
-        const col1 = new THREE.Mesh(new THREE.CylinderGeometry(0.13, 0.16, 3.2, 16), trimMat);
-        col1.position.set(-0.95, 1.6, 0);
-        const col2 = new THREE.Mesh(new THREE.CylinderGeometry(0.13, 0.16, 3.2, 16), trimMat);
-        col2.position.set(0.95, 1.6, 0);
-        const beam1 = new THREE.Mesh(new THREE.BoxGeometry(2.5, 0.24, 0.24), goldMat);
-        beam1.position.set(0, 2.8, 0);
-        const beam2 = new THREE.Mesh(new THREE.BoxGeometry(2.7, 0.24, 0.24), trimMat);
-        beam2.position.set(0, 3.15, 0);
-        torana.add(col1, col2, beam1, beam2);
-        torana.position.set(Math.sin(angle) * 5.1, 0.25, Math.cos(angle) * 5.1);
+        const col1 = new THREE.Mesh(new THREE.CylinderGeometry(0.14, 0.18, 3.4, 18), trimMat);
+        col1.position.set(-1.05, 1.7, 0);
+        col1.castShadow = true;
+        const col2 = new THREE.Mesh(new THREE.CylinderGeometry(0.14, 0.18, 3.4, 18), trimMat);
+        col2.position.set(1.05, 1.7, 0);
+        col2.castShadow = true;
+
+        // Triple Architraves with Sculpted Projections
+        for (let b = 0; b < 3; b++) {
+          const beam = new THREE.Mesh(new THREE.BoxGeometry(2.8 + b * 0.2, 0.22, 0.24), goldMat);
+          beam.position.set(0, 2.7 + b * 0.35, 0);
+          beam.castShadow = true;
+          torana.add(beam);
+        }
+        torana.add(col1, col2);
+        torana.position.set(Math.sin(angle) * 5.4, 0.25, Math.cos(angle) * 5.4);
         torana.rotation.y = angle;
         modelGroup.add(torana);
       }
 
-    } else if (monument.modelPreset === 'rock-cut-caves' || monument.id === 'ellora-caves') {
-      const cliffWallL = new THREE.Mesh(new THREE.BoxGeometry(1.6, 8.5, 9.5), trimMat);
-      cliffWallL.position.set(-4.6, 4.25, 0);
-      modelGroup.add(cliffWallL);
-
-      const cliffWallR = new THREE.Mesh(new THREE.BoxGeometry(1.6, 8.5, 9.5), trimMat);
-      cliffWallR.position.set(4.6, 4.25, 0);
-      modelGroup.add(cliffWallR);
-
-      const backCliff = new THREE.Mesh(new THREE.BoxGeometry(10.8, 8.5, 1.6), trimMat);
-      backCliff.position.set(0, 4.25, -4.7);
-      modelGroup.add(backCliff);
-
-      const sanctum = new THREE.Mesh(new THREE.BoxGeometry(3.2, 2.4, 3.2), baseMat);
-      sanctum.position.set(0, 1.6, -1.0);
-      sanctum.castShadow = true;
-      modelGroup.add(sanctum);
-
-      for (let t = 0; t < 6; t++) {
-        const factor = (6 - t) / 6;
-        const tier = new THREE.Mesh(new THREE.BoxGeometry(3.0 * factor, 0.65, 3.0 * factor), t % 2 === 0 ? baseMat : trimMat);
-        tier.position.set(0, 3.0 + t * 0.65, -1.0);
-        tier.castShadow = true;
-        modelGroup.add(tier);
-      }
-
-      const nandiMandapa = new THREE.Mesh(new THREE.BoxGeometry(2.0, 1.8, 2.0), baseMat);
-      nandiMandapa.position.set(0, 1.3, 2.2);
-      modelGroup.add(nandiMandapa);
-
-      for (let px of [-2.4, 2.4]) {
-        const pillar = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.22, 5.0, 16), trimMat);
-        pillar.position.set(px, 2.8, 1.8);
-        pillar.castShadow = true;
-        modelGroup.add(pillar);
-      }
-
     } else if (monument.modelPreset === 'fort-bastions') {
-      const wall = new THREE.Mesh(new THREE.BoxGeometry(6.6, 2.8, 2.2), baseMat);
-      wall.position.set(0, 1.7, 0);
+      // Massive Ashlar Masonry Curtain Wall
+      const wall = new THREE.Mesh(new THREE.BoxGeometry(7.2, 3.2, 2.4), baseMat);
+      wall.position.set(0, 1.8, 0);
       wall.castShadow = true;
       modelGroup.add(wall);
 
-      for (let m = -3.1; m <= 3.1; m += 0.62) {
-        const merlon = new THREE.Mesh(new THREE.BoxGeometry(0.36, 0.48, 0.22), trimMat);
-        merlon.position.set(m, 3.3, 1.0);
+      // Crenellated Parapet Merlons
+      for (let m = -3.4; m <= 3.4; m += 0.68) {
+        const merlon = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.55, 0.26), trimMat);
+        merlon.position.set(m, 3.6, 1.1);
+        merlon.castShadow = true;
         modelGroup.add(merlon);
       }
 
-      for (let bx of [-3.5, 3.5]) {
-        const bastion = new THREE.Mesh(new THREE.CylinderGeometry(1.35, 1.55, 3.8, 28), baseMat);
-        bastion.position.set(bx, 2.1, 0);
+      // Twin Semicircular Corner Bastions with Chhatris
+      for (const bx of [-3.8, 3.8]) {
+        const bastion = new THREE.Mesh(new THREE.CylinderGeometry(1.45, 1.68, 4.2, 32), baseMat);
+        bastion.position.set(bx, 2.3, 0);
         bastion.castShadow = true;
         modelGroup.add(bastion);
 
-        const chhatriDome = new THREE.Mesh(new THREE.SphereGeometry(0.7, 18, 18), goldMat);
-        chhatriDome.position.set(bx, 4.3, 0);
+        const chhatriDome = new THREE.Mesh(new THREE.SphereGeometry(0.78, 20, 20), goldMat);
+        chhatriDome.position.set(bx, 4.7, 0);
         modelGroup.add(chhatriDome);
       }
 
-      const tower = new THREE.Mesh(new THREE.BoxGeometry(1.4, 5.2, 1.4), trimMat);
-      tower.position.set(-1.8, 3.5, -2.2);
+      // Monumental Arched Gateway (Suraj Pol / Lahori Gate)
+      const gateArch = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.9, 0.9, 2.4, 24, 1, false, 0, Math.PI),
+        trimMat
+      );
+      gateArch.position.set(0, 1.6, 1.25);
+      modelGroup.add(gateArch);
+
+      // 9-Storey Vijay Stambha (Tower of Victory)
+      const tower = new THREE.Mesh(new THREE.BoxGeometry(1.6, 5.8, 1.6), trimMat);
+      tower.position.set(-2.2, 3.9, -2.4);
+      tower.castShadow = true;
       modelGroup.add(tower);
 
     } else {
-      // Brihadisvara / Classical Temple
-      const sanctum = new THREE.Mesh(new THREE.BoxGeometry(3.6, 2.4, 3.6), baseMat);
-      sanctum.position.y = 1.55;
+      // Brihadisvara / Dravidian Vimana Temple
+      const sanctum = new THREE.Mesh(new THREE.BoxGeometry(4.0, 2.6, 4.0), baseMat);
+      sanctum.position.set(0, 1.7, -1.0);
       sanctum.castShadow = true;
       modelGroup.add(sanctum);
 
-      const mandapa = new THREE.Mesh(new THREE.BoxGeometry(2.8, 1.6, 2.8), trimMat);
-      mandapa.position.set(0, 1.15, 3.0);
+      // Mandapa Colonnaded Hall
+      const mandapa = new THREE.Mesh(new THREE.BoxGeometry(3.2, 1.8, 3.4), trimMat);
+      mandapa.position.set(0, 1.3, 2.6);
       mandapa.castShadow = true;
       modelGroup.add(mandapa);
 
-      for (let cx of [-1.15, 1.15]) {
-        for (let cz of [2.0, 4.0]) {
-          const col = new THREE.Mesh(new THREE.CylinderGeometry(0.14, 0.18, 1.6, 16), trimMat);
-          col.position.set(cx, 1.15, cz);
+      // Mandapa Columns
+      for (const cx of [-1.3, 1.3]) {
+        for (const cz of [1.6, 3.6]) {
+          const col = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.2, 1.8, 18), trimMat);
+          col.position.set(cx, 1.3, cz);
           col.castShadow = true;
           modelGroup.add(col);
         }
       }
 
-      const tiers = 8;
+      // 13-Tiered Soaring Pyramidal Vimana Spire (Authentic Chola Granitic Pyramid)
+      const tiers = 13;
+      const tierH = 0.58;
       for (let t = 0; t < tiers; t++) {
         const factor = (tiers - t) / tiers;
-        const tier = new THREE.Mesh(new THREE.BoxGeometry(3.4 * factor, 0.65, 3.4 * factor), t % 2 === 0 ? baseMat : trimMat);
-        tier.position.y = 2.7 + t * 0.65;
+        const tier = new THREE.Mesh(
+          new THREE.BoxGeometry(3.9 * factor, tierH, 3.9 * factor),
+          t % 2 === 0 ? baseMat : trimMat
+        );
+        tier.position.set(0, 3.0 + t * tierH, -1.0);
         tier.castShadow = true;
+        tier.receiveShadow = true;
         modelGroup.add(tier);
       }
 
-      const amalaka = new THREE.Mesh(new THREE.CylinderGeometry(0.95, 1.0, 0.42, 28), trimMat);
-      amalaka.position.y = 8.0;
-      modelGroup.add(amalaka);
+      const topPlinthY = 3.0 + tiers * tierH;
 
-      const kalasha = new THREE.Mesh(new THREE.ConeGeometry(0.32, 1.05, 20), goldMat);
-      kalasha.position.y = 8.75;
+      // 4 Monolithic Stone Nandis at the 4 Cardinal Corners of the Kumbam Platform
+      [
+        [-0.45, -0.45],
+        [0.45, -0.45],
+        [-0.45, 0.45],
+        [0.45, 0.45]
+      ].forEach(([nx, nz]) => {
+        const cornerNandi = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.16, 0.28), trimMat);
+        cornerNandi.position.set(nx, topPlinthY + 0.1, -1.0 + nz);
+        cornerNandi.castShadow = true;
+        modelGroup.add(cornerNandi);
+      });
+
+      // Monolithic 80-Tonne Granite Kumbam Cupola
+      const kumbam = new THREE.Mesh(new THREE.CylinderGeometry(0.85, 0.98, 0.52, 32), trimMat);
+      kumbam.position.set(0, topPlinthY + 0.32, -1.0);
+      kumbam.castShadow = true;
+      modelGroup.add(kumbam);
+
+      // Golden Kalasha (Stupi) Apex Spire
+      const kalasha = new THREE.Mesh(new THREE.ConeGeometry(0.28, 1.1, 24), goldMat);
+      kalasha.position.set(0, topPlinthY + 1.08, -1.0);
       kalasha.castShadow = true;
       modelGroup.add(kalasha);
+
+      // Colossal Seated Stone Nandi Bull Pavilion (Nandi Mandapa with 4 Granite Pillars & Roof)
+      const nandiPavilionGroup = new THREE.Group();
+      nandiPavilionGroup.position.set(0, 0, 5.0);
+
+      // Stepped Granite Dais
+      const nandiDais = new THREE.Mesh(new THREE.BoxGeometry(2.0, 0.4, 2.4), trimMat);
+      nandiDais.position.y = 0.2;
+      nandiDais.receiveShadow = true;
+      nandiPavilionGroup.add(nandiDais);
+
+      // 4 Carved Granite Columns
+      [
+        [-0.8, -1.0],
+        [0.8, -1.0],
+        [-0.8, 1.0],
+        [0.8, 1.0]
+      ].forEach(([px, pz]) => {
+        const pillar = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.1, 1.8, 12), trimMat);
+        pillar.position.set(px, 1.3, pz);
+        pillar.castShadow = true;
+        nandiPavilionGroup.add(pillar);
+      });
+
+      // Pavilion Sloping Canopy Roof
+      const pRoof = new THREE.Mesh(new THREE.BoxGeometry(2.2, 0.25, 2.6), baseMat);
+      pRoof.position.y = 2.25;
+      pRoof.castShadow = true;
+      nandiPavilionGroup.add(pRoof);
+
+      // Colossal Monolithic Seated Nandi Bull
+      const nandiBody = new THREE.Mesh(new THREE.BoxGeometry(0.75, 0.65, 1.3), baseMat);
+      nandiBody.position.set(0, 0.72, 0);
+      nandiBody.castShadow = true;
+      nandiPavilionGroup.add(nandiBody);
+
+      const nandiHead = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.4, 0.48), trimMat);
+      nandiHead.position.set(0, 1.05, -0.65);
+      nandiHead.castShadow = true;
+      nandiPavilionGroup.add(nandiHead);
+
+      modelGroup.add(nandiPavilionGroup);
     }
 
     // H. LiDAR Point Cloud Generation for LiDAR Mode
@@ -1101,6 +1498,12 @@ export function Monument3DViewer({
       animationFrameId = requestAnimationFrame(animate);
       const elapsed = clock.getElapsedTime();
 
+      // Living Water ripple animation in reflecting pool
+      if (waterTextureRef.current) {
+        waterTextureRef.current.offset.x += 0.0008;
+        waterTextureRef.current.offset.y += 0.0005;
+      }
+
       // Smooth Camera Glide Interpolation
       if (isTransitioningCamera.current) {
         const now = performance.now();
@@ -1223,7 +1626,7 @@ export function Monument3DViewer({
     }
   }, [renderMode]);
 
-  // Archaeo-Astronomy Dynamic 24-Hour Sun Position & Lighting
+  // Archaeo-Astronomy Dynamic 24-Hour Sun Position & Atmospheric Sky Lighting
   useEffect(() => {
     if (!sunLightRef.current || !ambientLightRef.current || !diyaLightRef.current || !sceneRef.current) return;
 
@@ -1231,51 +1634,97 @@ export function Monument3DViewer({
     const ambient = ambientLightRef.current;
     const diya = diyaLightRef.current;
     const scene = sceneRef.current;
+    const hemi = hemiLightRef.current;
+    const fill = fillLightRef.current;
+    const skyMesh = skyMeshRef.current;
+
+    // Dynamically regenerate sky texture for real time of day
+    const newSky = createSkyTexture(sunHour);
+    scene.background = newSky;
+    scene.environment = newSky;
+    if (skyMesh) {
+      (skyMesh.material as THREE.MeshBasicMaterial).map = newSky;
+      newSky.needsUpdate = true;
+    }
 
     const normalizedHour = (sunHour - 6) / 12;
     const angle = normalizedHour * Math.PI;
 
     if (sunHour >= 6 && sunHour <= 18) {
-      const sunX = Math.cos(angle) * 15;
-      const sunY = Math.sin(angle) * 14 + 1.5;
-      const sunZ = Math.sin(angle) * 9;
+      const sunX = Math.cos(angle) * 18;
+      const sunY = Math.max(1.5, Math.sin(angle) * 16 + 2.0);
+      const sunZ = Math.sin(angle) * 10;
       sun.position.set(sunX, sunY, sunZ);
+      if (fill) fill.position.set(-sunX * 0.7, 5, -sunZ * 0.7);
 
-      if (sunHour === 6 || sunHour === 18) {
-        scene.background = new THREE.Color(0x1a0d06);
-        scene.fog = new THREE.FogExp2(0x1a0d06, 0.032);
-        sun.color.setHex(0xf97316);
-        sun.intensity = 2.4;
-        ambient.color.setHex(0xffeedd);
+      if (sunHour <= 7) {
+        // Dawn / Brahma Muhurta: Soft peach-gold morning sunlight
+        scene.fog = new THREE.FogExp2(0x3b1d64, 0.012);
+        sun.color.setHex(0xfba465);
+        sun.intensity = 2.0;
+        ambient.color.setHex(0xffedd5);
         ambient.intensity = 0.55;
-        diya.intensity = 1.2;
-      } else if (sunHour >= 11 && sunHour <= 13) {
-        scene.background = new THREE.Color(0x0a1224);
-        scene.fog = new THREE.FogExp2(0x0a1224, 0.026);
-        sun.color.setHex(0xffffff);
+        if (hemi) {
+          hemi.color.setHex(0xc084fc);
+          hemi.groundColor.setHex(0x78350f);
+          hemi.intensity = 1.0;
+        }
+        diya.intensity = 1.0;
+      } else if (sunHour >= 11 && sunHour <= 14) {
+        // High Noon: Crisp natural sunlight with soft shadows
+        scene.fog = new THREE.FogExp2(0xbae6fd, 0.008);
+        sun.color.setHex(0xfffaed);
         sun.intensity = 2.8;
         ambient.color.setHex(0xe0f2fe);
         ambient.intensity = 0.75;
-        diya.intensity = 0.1;
-      } else {
-        scene.background = new THREE.Color(0x0d0c0a);
-        scene.fog = new THREE.FogExp2(0x0d0c0a, 0.028);
-        sun.color.setHex(0xffd59e);
-        sun.intensity = 2.3;
-        ambient.color.setHex(0xffeedd);
+        if (hemi) {
+          hemi.color.setHex(0x38bdf8);
+          hemi.groundColor.setHex(0x78716c);
+          hemi.intensity = 1.3;
+        }
+        diya.intensity = 0.0;
+      } else if (sunHour >= 15 && sunHour <= 17) {
+        // Golden Hour: Rich warm amber architectural sidelighting
+        scene.fog = new THREE.FogExp2(0x78350f, 0.011);
+        sun.color.setHex(0xfbbf24);
+        sun.intensity = 2.6;
+        ambient.color.setHex(0xfef3c7);
         ambient.intensity = 0.65;
-        diya.intensity = 0.4;
+        if (hemi) {
+          hemi.color.setHex(0x60a5fa);
+          hemi.groundColor.setHex(0x92400e);
+          hemi.intensity = 1.1;
+        }
+        diya.intensity = 0.3;
+      } else {
+        // Sunset / Sandhya: Deep orange sunset with twilight sky
+        scene.fog = new THREE.FogExp2(0x311b54, 0.014);
+        sun.color.setHex(0xea580c);
+        sun.intensity = 1.9;
+        ambient.color.setHex(0xfde68a);
+        ambient.intensity = 0.55;
+        if (hemi) {
+          hemi.color.setHex(0x818cf8);
+          hemi.groundColor.setHex(0xb45309);
+          hemi.intensity = 0.9;
+        }
+        diya.intensity = 1.8;
       }
     } else {
-      scene.background = new THREE.Color(0x020306);
-      scene.fog = new THREE.FogExp2(0x020306, 0.04);
+      // Twilight / Night: Deep midnight indigo with warm glowing architectural spotlights & diyas
+      scene.fog = new THREE.FogExp2(0x0f172a, 0.016);
       sun.color.setHex(0x38bdf8);
-      sun.intensity = 0.3;
-      sun.position.set(-10, 10, -8);
+      sun.intensity = 0.35;
+      sun.position.set(-10, 12, -8);
       ambient.color.setHex(0x1e293b);
-      ambient.intensity = 0.3;
-      diya.color.setHex(0xf97316);
-      diya.intensity = 3.4;
+      ambient.intensity = 0.35;
+      if (hemi) {
+        hemi.color.setHex(0x1e1b4b);
+        hemi.groundColor.setHex(0x0f172a);
+        hemi.intensity = 0.45;
+      }
+      diya.color.setHex(0xf59e0b);
+      diya.intensity = 4.2; // Warm temple illumination
     }
   }, [sunHour]);
 

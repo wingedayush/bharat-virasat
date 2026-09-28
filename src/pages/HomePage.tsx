@@ -30,6 +30,7 @@ import { studentInnovationIdeas, musicalTraditions } from '@/data/innovations';
 import { unescoMonumentsList, UnescoMonument } from '@/data/unescoMonuments';
 import { Monument3DViewer } from '@/components/Monument3DViewer';
 import { MonumentAnimatedBackground } from '@/components/MonumentAnimatedBackground';
+import { CinematicHeritageShowcase } from '@/components/CinematicHeritageShowcase';
 
 interface HomePageProps {
   onPlayAudioGuide?: (title: string, script: string, location?: string) => void;
@@ -293,6 +294,9 @@ export function HomePage({ onPlayAudioGuide }: HomePageProps) {
           </div>
         </div>
       </section>
+
+      {/* CINEMATIC HERITAGE DRONE TOUR & TIME-OF-DAY ATMOSPHERIC SHOWCASE */}
+      <CinematicHeritageShowcase onPlayAudioGuide={onPlayAudioGuide} />
 
       {/* 3. HORIZONTAL GLIDE HERITAGE GALLERY (Inspired by #sonofpage2 & .mynewbox in QS) */}
       <section className="py-20 bg-gradient-to-b from-stone-950 via-stone-900 to-stone-950 border-b border-stone-800/80">

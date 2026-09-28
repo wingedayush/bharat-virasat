@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { triggerNavigationAudio } from '@/lib/navigationAudio';
 
 export type Route =
   | { name: 'home' }
@@ -44,6 +45,7 @@ function parseHash(): Route {
 }
 
 export function navigate(route: string) {
+  triggerNavigationAudio(route);
   window.location.hash = route;
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
@@ -52,10 +54,13 @@ export function useRouter() {
   const [route, setRoute] = useState<Route>(parseHash);
 
   useEffect(() => {
-    const handler = () => setRoute(parseHash());
+    const handler = () => {
+      setRoute(parseHash());
+    };
     window.addEventListener('hashchange', handler);
     return () => window.removeEventListener('hashchange', handler);
   }, []);
 
   return route;
 }
+

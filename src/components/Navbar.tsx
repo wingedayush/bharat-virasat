@@ -1,12 +1,14 @@
-import { Compass, MapPin, Users, Trophy, Route as RouteIcon, GitCompare, Video, Camera, Sparkles, Navigation, Landmark, LogIn, User as UserIcon, Layers, ShieldCheck } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Compass, MapPin, Users, Trophy, Route as RouteIcon, GitCompare, Video, Camera, Sparkles, Navigation, Landmark, LogIn, User as UserIcon, Layers, ShieldCheck, Bell, BellOff } from 'lucide-react';
 import { navigate } from '@/hooks/useRouter';
 import { useProgress } from '@/hooks/useProgress';
 import { useAuth } from '@/hooks/useAuth';
+import { getNavAudioSettings, updateNavAudioSettings, subscribeNavAudioSettings, playNavigationSound } from '@/lib/navigationAudio';
 
 const navItems = [
   { label: 'Home', path: '/', icon: Compass },
-  { label: 'ASI Portal', path: '/asi', icon: ShieldCheck, highlight: true },
-  { label: '3D View', path: '/3d-view', icon: Layers, highlight: true },
+  { label: 'ASI Portal', path: '/asi', icon: ShieldCheck },
+  { label: '3D View', path: '/3d-view', icon: Layers },
   { label: 'UNESCO', path: '/unesco', icon: Landmark },
   { label: 'Explore', path: '/explore', icon: MapPin },
   { label: 'Artisans', path: '/artisans', icon: Users },
@@ -22,6 +24,11 @@ const navItems = [
 export function Navbar() {
   const { progress } = useProgress();
   const { user, isLoggedIn } = useAuth();
+  const [navAudioSettings, setNavAudioSettings] = useState(getNavAudioSettings());
+
+  useEffect(() => {
+    return subscribeNavAudioSettings((updated) => setNavAudioSettings(updated));
+  }, []);
 
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 bg-stone-900/95 backdrop-blur-md border-b border-amber-900/30">
@@ -57,6 +64,23 @@ export function Navbar() {
           </div>
 
           <div className="flex items-center gap-2 pl-2 border-l border-stone-700 shrink-0">
+            {/* Navigation Audio Quick Toggle */}
+            <button
+              onClick={() => {
+                const next = !navAudioSettings.soundEnabled;
+                updateNavAudioSettings({ soundEnabled: next });
+                if (next) playNavigationSound(navAudioSettings.soundType, 0.8);
+              }}
+              className={`p-2 rounded-xl transition-all ${
+                navAudioSettings.soundEnabled
+                  ? 'text-amber-400 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30'
+                  : 'text-stone-500 hover:text-stone-400 bg-stone-800/40'
+              }`}
+              title={navAudioSettings.soundEnabled ? 'Navigation Audio ON (Click to mute chimes)' : 'Navigation Audio MUTED (Click to turn on)'}
+            >
+              {navAudioSettings.soundEnabled ? <Bell className="w-4 h-4" /> : <BellOff className="w-4 h-4" />}
+            </button>
+
             {/* Points Counter */}
             <div className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-amber-500/10 border border-amber-500/30">
               <Trophy className="w-4 h-4 text-amber-400" />

@@ -12,8 +12,19 @@ import {
   Sparkles,
   Disc3,
   X,
-  Gauge
+  Gauge,
+  Compass,
+  Bell,
+  Music2,
+  Radio
 } from 'lucide-react';
+import {
+  playNavigationSound,
+  getNavAudioSettings,
+  updateNavAudioSettings,
+  subscribeNavAudioSettings,
+  NavSoundType
+} from '@/lib/navigationAudio';
 
 export interface SoundscapeTrack {
   id: string;
@@ -21,40 +32,72 @@ export interface SoundscapeTrack {
   hindiName: string;
   description: string;
   raga: string;
-  type: 'drone' | 'flute' | 'bells' | 'shehnai';
+  type: 'bells' | 'drone' | 'flute' | 'shehnai' | 'sitar' | 'santoor' | 'rudraveena' | 'rain-monsoon';
 }
 
 export const soundscapes: SoundscapeTrack[] = [
   {
     id: 'temple-bells',
-    name: 'Sacred Temple Bells & Vedic Drone',
-    hindiName: 'मंदिर घंटानाद व ओंकार ध्वनि',
+    name: 'Sacred Temple Bells & Vedic Tanpura',
+    hindiName: 'मंदिर घंटानाद व वैदिक तानपुरा',
     description: 'Resonant bronze bells ringing at 432 Hz with deep meditative Tanpura harmonics',
-    raga: 'Kedar & Bhupali',
+    raga: 'Kedar & Bhupali (432 Hz)',
     type: 'bells',
   },
   {
+    id: 'bansuri-flute',
+    name: 'Himalayan Bansuri & Mountain Echoes',
+    hindiName: 'पहाड़ी बांसुरी व पवन नाद',
+    description: 'Bamboo flute melodies with microtonal slides echoing across cedar valleys',
+    raga: 'Pahari & Shivranjani',
+    type: 'flute',
+  },
+  {
+    id: 'sitar-yaman',
+    name: 'Twilight Sitar & Sympathetic Tarab',
+    hindiName: 'संध्या सितार व यमन राग',
+    description: 'Intricate sitar resonance with sympathetic vibration strings and tranquil drone',
+    raga: 'Yaman Kalyan',
+    type: 'sitar',
+  },
+  {
+    id: 'santoor-kashmir',
+    name: 'Kashmiri Santoor Shimmering Cascades',
+    hindiName: 'कश्मीरी संतूर की झंकार',
+    description: 'One hundred struck strings generating sparkling melodic waves and tranquil reverbs',
+    raga: 'Kirwani & Pahari',
+    type: 'santoor',
+  },
+  {
+    id: 'rudra-veena',
+    name: 'Dhrupad Rudra Veena Meditation',
+    hindiName: 'रुद्र वीणा ध्यान संगीत',
+    description: 'Deep subterranean acoustic frequencies and ancient meditative temple resonance',
+    raga: 'Bhairav & Asavari',
+    type: 'rudraveena',
+  },
+  {
+    id: 'monsoon-megh',
+    name: 'Monsoon Rain & Courtyard Flute',
+    hindiName: 'मेघ मल्हार व वर्षा नाद',
+    description: 'Gentle monsoon rainfall on stone courtyards paired with soothing bamboo melodies',
+    raga: 'Megh Malhar',
+    type: 'rain-monsoon',
+  },
+  {
     id: 'raga-bhairav',
-    name: 'Morning Raga Bhairav (Sitar & Tanpura)',
+    name: 'Ganges Dawn Raga (Sitar & Drone)',
     hindiName: 'प्रातः राग भैरव',
     description: 'The sublime dawn melody of awakening and inner peace across the Ganges ghats',
     raga: 'Ahir Bhairav',
     type: 'drone',
   },
   {
-    id: 'bansuri-flute',
-    name: 'Himalayan Bansuri & Mountain Breeze',
-    hindiName: 'पहाड़ी बांसुरी व पवन नाद',
-    description: 'Bamboo flute melodies echoing through the cedar valleys of the Himalayas',
-    raga: 'Pahari',
-    type: 'flute',
-  },
-  {
     id: 'royal-shehnai',
     name: 'Auspicious Shehnai of Kashi',
     hindiName: 'काशी की शहनाई',
     description: 'Celebratory double-reed heritage music echoing through temple courtyards',
-    raga: 'Yaman Kalyan',
+    raga: 'Bilawal & Kafi',
     type: 'shehnai',
   },
 ];
@@ -82,7 +125,14 @@ export function HeritageAudioPlayer({ currentNarration, onClearNarration }: Heri
   const [speechRate, setSpeechRate] = useState<number>(1.0);
   const [voiceVolume, setVoiceVolume] = useState<number>(1.0);
   const [currentWordIndex, setCurrentWordIndex] = useState<number>(0);
-  const [speechProgress, setSpeechProgress] = useState<number>(0); // 0 to 100
+  const [speechProgress, setSpeechProgress] = useState<number>(0);
+
+  // Navigation Audio Settings State
+  const [navSettings, setNavSettings] = useState(getNavAudioSettings());
+
+  useEffect(() => {
+    return subscribeNavAudioSettings((updated) => setNavSettings(updated));
+  }, []);
 
   // Words breakdown of current narrative
   const [words, setWords] = useState<string[]>([]);
@@ -92,6 +142,7 @@ export function HeritageAudioPlayer({ currentNarration, onClearNarration }: Heri
   const masterGainRef = useRef<GainNode | null>(null);
   const ambientGainRef = useRef<GainNode | null>(null);
   const activeOscillatorsRef = useRef<OscillatorNode[]>([]);
+  const noiseSourceRef = useRef<AudioNode | null>(null);
   const soundIntervalRef = useRef<number | null>(null);
 
   // Canvas visualizer reference
@@ -100,7 +151,6 @@ export function HeritageAudioPlayer({ currentNarration, onClearNarration }: Heri
 
   // Speech Utterance reference
   const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
-  const progressTimerRef = useRef<number | null>(null);
 
   // Split narration into words whenever currentNarration changes
   useEffect(() => {
@@ -120,7 +170,9 @@ export function HeritageAudioPlayer({ currentNarration, onClearNarration }: Heri
   // Initialize Web Audio Engine
   const initAudio = () => {
     if (!audioCtxRef.current) {
-      const AudioCtx = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+      const AudioCtx =
+        window.AudioContext ||
+        (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
       audioCtxRef.current = new AudioCtx();
       const ctx = audioCtxRef.current;
 
@@ -145,6 +197,15 @@ export function HeritageAudioPlayer({ currentNarration, onClearNarration }: Heri
     if (soundIntervalRef.current) {
       window.clearInterval(soundIntervalRef.current);
       soundIntervalRef.current = null;
+    }
+    if (noiseSourceRef.current) {
+      try {
+        (noiseSourceRef.current as AudioBufferSourceNode).stop();
+        noiseSourceRef.current.disconnect();
+      } catch {
+        // ignore
+      }
+      noiseSourceRef.current = null;
     }
     activeOscillatorsRef.current.forEach((osc) => {
       try {
@@ -220,7 +281,207 @@ export function HeritageAudioPlayer({ currentNarration, onClearNarration }: Heri
       };
 
       strikeBell();
-      soundIntervalRef.current = window.setInterval(strikeBell, 5000);
+      soundIntervalRef.current = window.setInterval(strikeBell, 4600);
+    } else if (track.type === 'flute') {
+      // Bansuri (Gentle Indian Scale Notes Generator with warm drone)
+      const scale = [220, 246.9, 277.2, 329.6, 369.9, 440, 493.8, 554.4];
+      let noteIdx = 0;
+
+      const fluteOsc = ctx.createOscillator();
+      const fluteGain = ctx.createGain();
+      fluteOsc.type = 'sine';
+      fluteOsc.frequency.setValueAtTime(scale[0], ctx.currentTime);
+      fluteGain.gain.setValueAtTime(0.14, ctx.currentTime);
+
+      const fluteFilter = ctx.createBiquadFilter();
+      fluteFilter.type = 'lowpass';
+      fluteFilter.frequency.setValueAtTime(1400, ctx.currentTime);
+
+      fluteOsc.connect(fluteGain);
+      fluteGain.connect(fluteFilter);
+      fluteFilter.connect(dest);
+      fluteOsc.start();
+      oscs.push(fluteOsc);
+
+      // Warm background mountain drone
+      const baseDrone = ctx.createOscillator();
+      const baseGain = ctx.createGain();
+      baseDrone.type = 'triangle';
+      baseDrone.frequency.setValueAtTime(110, ctx.currentTime);
+      baseGain.gain.setValueAtTime(0.08, ctx.currentTime);
+      baseDrone.connect(baseGain);
+      baseGain.connect(dest);
+      baseDrone.start();
+      oscs.push(baseDrone);
+
+      soundIntervalRef.current = window.setInterval(() => {
+        if (!audioCtxRef.current) return;
+        noteIdx = (noteIdx + Math.floor(Math.random() * 3) + 1) % scale.length;
+        fluteOsc.frequency.setTargetAtTime(scale[noteIdx], audioCtxRef.current.currentTime, 0.28);
+      }, 1600);
+    } else if (track.type === 'sitar') {
+      // Sitar with sympathetic resonance (Raga Yaman)
+      const ragaYaman = [146.83, 164.81, 185.0, 207.65, 220.0, 246.94, 277.18];
+      let sitarNoteIdx = 0;
+
+      const sitarDrone = ctx.createOscillator();
+      const droneGain = ctx.createGain();
+      sitarDrone.type = 'sawtooth';
+      sitarDrone.frequency.setValueAtTime(146.83, ctx.currentTime);
+      droneGain.gain.setValueAtTime(0.04, ctx.currentTime);
+
+      const droneFilter = ctx.createBiquadFilter();
+      droneFilter.type = 'lowpass';
+      droneFilter.frequency.setValueAtTime(600, ctx.currentTime);
+
+      sitarDrone.connect(droneGain);
+      droneGain.connect(droneFilter);
+      droneFilter.connect(dest);
+      sitarDrone.start();
+      oscs.push(sitarDrone);
+
+      // Pluck sequence function
+      const playSitarPluck = () => {
+        if (!audioCtxRef.current || !ambientGainRef.current) return;
+        const now = audioCtxRef.current.currentTime;
+        sitarNoteIdx = (sitarNoteIdx + 1) % ragaYaman.length;
+        const freq = ragaYaman[sitarNoteIdx];
+
+        const pluck = audioCtxRef.current.createOscillator();
+        const pluckGain = audioCtxRef.current.createGain();
+        pluck.type = 'sawtooth';
+        pluck.frequency.setValueAtTime(freq, now);
+        pluck.frequency.exponentialRampToValueAtTime(freq * 1.03, now + 0.18);
+
+        const filter = audioCtxRef.current.createBiquadFilter();
+        filter.type = 'bandpass';
+        filter.frequency.setValueAtTime(freq * 2.5, now);
+        filter.Q.setValueAtTime(3.5, now);
+
+        pluckGain.gain.setValueAtTime(0.18, now);
+        pluckGain.gain.exponentialRampToValueAtTime(0.001, now + 1.4);
+
+        pluck.connect(filter);
+        filter.connect(pluckGain);
+        pluckGain.connect(ambientGainRef.current);
+        pluck.start(now);
+        pluck.stop(now + 1.45);
+      };
+
+      playSitarPluck();
+      soundIntervalRef.current = window.setInterval(playSitarPluck, 1400);
+    } else if (track.type === 'santoor') {
+      // Kashmiri Santoor (100 hammered strings arpeggiating in Raga Kirwani)
+      const santoorScale = [261.63, 293.66, 311.13, 349.23, 392.0, 415.3, 493.88, 523.25];
+      let sIdx = 0;
+
+      // Base background tanpura
+      const base = ctx.createOscillator();
+      const bGain = ctx.createGain();
+      base.type = 'triangle';
+      base.frequency.setValueAtTime(130.81, ctx.currentTime);
+      bGain.gain.setValueAtTime(0.06, ctx.currentTime);
+      base.connect(bGain);
+      bGain.connect(dest);
+      base.start();
+      oscs.push(base);
+
+      const strikeSantoor = () => {
+        if (!audioCtxRef.current || !ambientGainRef.current) return;
+        const now = audioCtxRef.current.currentTime;
+        sIdx = (sIdx + Math.floor(Math.random() * 2) + 1) % santoorScale.length;
+        const freq = santoorScale[sIdx];
+
+        const strk = audioCtxRef.current.createOscillator();
+        const strkGain = audioCtxRef.current.createGain();
+        strk.type = 'triangle';
+        strk.frequency.setValueAtTime(freq, now);
+
+        strkGain.gain.setValueAtTime(0.15, now);
+        strkGain.gain.exponentialRampToValueAtTime(0.001, now + 0.85);
+
+        strk.connect(strkGain);
+        strkGain.connect(ambientGainRef.current);
+        strk.start(now);
+        strk.stop(now + 0.9);
+      };
+
+      strikeSantoor();
+      soundIntervalRef.current = window.setInterval(strikeSantoor, 700);
+    } else if (track.type === 'rudraveena') {
+      // Deep Ancient Dhrupad Rudra Veena (Subterranean Frequencies)
+      const veenaFreqs = [55.0, 82.5, 110.0, 165.0];
+      veenaFreqs.forEach((freq, idx) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = idx % 2 === 0 ? 'sine' : 'triangle';
+        osc.frequency.setValueAtTime(freq, ctx.currentTime);
+
+        const filter = ctx.createBiquadFilter();
+        filter.type = 'lowpass';
+        filter.frequency.setValueAtTime(320, ctx.currentTime);
+
+        gain.gain.setValueAtTime(0.09 / (idx + 1), ctx.currentTime);
+        osc.connect(gain);
+        gain.connect(filter);
+        filter.connect(dest);
+        osc.start();
+        oscs.push(osc);
+      });
+    } else if (track.type === 'rain-monsoon') {
+      // Monsoon Rain Ambient + Raga Megh Malhar Flute
+      // Synthesize pink/white noise buffer for gentle temple rainfall
+      const bufferSize = ctx.sampleRate * 2;
+      const noiseBuffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+      const output = noiseBuffer.getChannelData(0);
+      let b0 = 0, b1 = 0, b2 = 0, b3 = 0, b4 = 0, b5 = 0, b6 = 0;
+      for (let i = 0; i < bufferSize; i++) {
+        const white = Math.random() * 2 - 1;
+        b0 = 0.99886 * b0 + white * 0.0555179;
+        b1 = 0.99332 * b1 + white * 0.0750759;
+        b2 = 0.96900 * b2 + white * 0.1538520;
+        b3 = 0.86650 * b3 + white * 0.3104856;
+        b4 = 0.55000 * b4 + white * 0.5329522;
+        b5 = -0.7616 * b5 - white * 0.0168980;
+        output[i] = (b0 + b1 + b2 + b3 + b4 + b5 + b6 + white * 0.5362) * 0.035;
+        b6 = white * 0.115926;
+      }
+
+      const whiteNoise = ctx.createBufferSource();
+      whiteNoise.buffer = noiseBuffer;
+      whiteNoise.loop = true;
+
+      const rainFilter = ctx.createBiquadFilter();
+      rainFilter.type = 'lowpass';
+      rainFilter.frequency.setValueAtTime(800, ctx.currentTime);
+
+      const rainGain = ctx.createGain();
+      rainGain.gain.setValueAtTime(0.18, ctx.currentTime);
+
+      whiteNoise.connect(rainFilter);
+      rainFilter.connect(rainGain);
+      rainGain.connect(dest);
+      whiteNoise.start();
+      noiseSourceRef.current = whiteNoise;
+
+      // Soft flute motif in Megh Malhar
+      const meghScale = [220, 246.9, 293.66, 329.6, 392.0];
+      let mIdx = 0;
+      const mFlute = ctx.createOscillator();
+      const mGain = ctx.createGain();
+      mFlute.type = 'sine';
+      mFlute.frequency.setValueAtTime(meghScale[0], ctx.currentTime);
+      mGain.gain.setValueAtTime(0.09, ctx.currentTime);
+      mFlute.connect(mGain);
+      mGain.connect(dest);
+      mFlute.start();
+      oscs.push(mFlute);
+
+      soundIntervalRef.current = window.setInterval(() => {
+        if (!audioCtxRef.current) return;
+        mIdx = (mIdx + 1) % meghScale.length;
+        mFlute.frequency.setTargetAtTime(meghScale[mIdx], audioCtxRef.current.currentTime, 0.35);
+      }, 2200);
     } else if (track.type === 'drone') {
       // Classical Tanpura Drone (Sa-Pa-Sa-Kharja)
       const notes = [136.1, 144.0, 204.1, 272.2];
@@ -230,7 +491,6 @@ export function HeritageAudioPlayer({ currentNarration, onClearNarration }: Heri
         osc.type = idx % 2 === 0 ? 'sine' : 'triangle';
         osc.frequency.setValueAtTime(freq, ctx.currentTime);
 
-        // Sub-LFO vibrato
         const lfo = ctx.createOscillator();
         const lfoGain = ctx.createGain();
         lfo.frequency.setValueAtTime(0.18 + idx * 0.1, ctx.currentTime);
@@ -246,37 +506,6 @@ export function HeritageAudioPlayer({ currentNarration, onClearNarration }: Heri
         osc.start();
         oscs.push(osc);
       });
-    } else if (track.type === 'flute') {
-      // Bansuri (Gentle Indian Scale Notes Generator)
-      const scale = [220, 247.5, 277.2, 330, 370, 440];
-      let noteIdx = 0;
-
-      const fluteOsc = ctx.createOscillator();
-      const fluteGain = ctx.createGain();
-      fluteOsc.type = 'sine';
-      fluteOsc.frequency.setValueAtTime(scale[0], ctx.currentTime);
-      fluteGain.gain.setValueAtTime(0.12, ctx.currentTime);
-      fluteOsc.connect(fluteGain);
-      fluteGain.connect(dest);
-      fluteOsc.start();
-      oscs.push(fluteOsc);
-
-      // Warm background drone
-      const baseDrone = ctx.createOscillator();
-      const baseGain = ctx.createGain();
-      baseDrone.type = 'triangle';
-      baseDrone.frequency.setValueAtTime(110, ctx.currentTime);
-      baseGain.gain.setValueAtTime(0.07, ctx.currentTime);
-      baseDrone.connect(baseGain);
-      baseGain.connect(dest);
-      baseDrone.start();
-      oscs.push(baseDrone);
-
-      soundIntervalRef.current = window.setInterval(() => {
-        if (!audioCtxRef.current) return;
-        noteIdx = (noteIdx + Math.floor(Math.random() * 2) + 1) % scale.length;
-        fluteOsc.frequency.setTargetAtTime(scale[noteIdx], audioCtxRef.current.currentTime, 0.25);
-      }, 1800);
     } else {
       // Shehnai (Auspicious Double-Reed Harmonic Resonance)
       const fundamental = 261.6;
@@ -327,7 +556,6 @@ export function HeritageAudioPlayer({ currentNarration, onClearNarration }: Heri
     if (!('speechSynthesis' in window)) return;
     window.speechSynthesis.cancel();
 
-    // Prepare text from offset
     const wordsList = text.split(/\s+/).filter(Boolean);
     const textToSpeak = wordsList.slice(startWordOffset).join(' ');
 
@@ -337,7 +565,6 @@ export function HeritageAudioPlayer({ currentNarration, onClearNarration }: Heri
     utterance.volume = isMuted ? 0 : voiceVolume;
     utterance.pitch = 1.0;
 
-    // Pick natural Indian English or gentle clear voice
     const voices = window.speechSynthesis.getVoices();
     const preferredVoice =
       voices.find((v) => v.lang === 'en-IN' || v.name.includes('India')) ||
@@ -347,11 +574,9 @@ export function HeritageAudioPlayer({ currentNarration, onClearNarration }: Heri
       utterance.voice = preferredVoice;
     }
 
-    // Live word boundary tracking for interactive transcript highlighting
     utterance.onboundary = (event) => {
       if (event.name === 'word') {
         const charIdx = event.charIndex;
-        // estimate word index
         const spokenSoFar = textToSpeak.substring(0, charIdx);
         const wordCount = spokenSoFar.split(/\s+/).length;
         const totalIdx = startWordOffset + wordCount;
@@ -400,30 +625,26 @@ export function HeritageAudioPlayer({ currentNarration, onClearNarration }: Heri
       window.speechSynthesis.cancel();
       setIsNarrating(false);
       setIsNarrationPaused(false);
-      setSpeechProgress(0);
-      setCurrentWordIndex(0);
     }
   };
 
-  // Rewind 10 words / ~5 seconds
   const handleRewind10 = () => {
-    if (!currentNarration) return;
-    const newIdx = Math.max(0, currentWordIndex - 12);
+    const newIdx = Math.max(0, currentWordIndex - 10);
     setCurrentWordIndex(newIdx);
-    startVoiceNarration(currentNarration.text, newIdx);
+    if (currentNarration) {
+      startVoiceNarration(currentNarration.text, newIdx);
+    }
   };
 
-  // Fast forward 10 words
   const handleForward10 = () => {
     if (!currentNarration) return;
-    const newIdx = Math.min(words.length - 1, currentWordIndex + 12);
+    const newIdx = Math.min(words.length - 1, currentWordIndex + 10);
     setCurrentWordIndex(newIdx);
     startVoiceNarration(currentNarration.text, newIdx);
   };
 
-  // Change Speech Speed
   const handleCycleSpeed = () => {
-    const speeds = [0.75, 1.0, 1.25, 1.5];
+    const speeds = [0.8, 1.0, 1.25, 1.5];
     const nextIdx = (speeds.indexOf(speechRate) + 1) % speeds.length;
     const nextSpeed = speeds[nextIdx];
     setSpeechRate(nextSpeed);
@@ -444,13 +665,13 @@ export function HeritageAudioPlayer({ currentNarration, onClearNarration }: Heri
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       const isActive = (isPlayingSoundscape || isNarrating) && !isMuted;
 
-      const numBars = 16;
+      const numBars = 14;
       const barWidth = 3;
       const gap = 3;
 
       for (let i = 0; i < numBars; i++) {
         const height = isActive
-          ? Math.max(4, Math.sin(phase + i * 0.45) * 12 + 14)
+          ? Math.max(4, Math.sin(phase + i * 0.45) * 12 + 13)
           : 4;
 
         const x = i * (barWidth + gap) + 4;
@@ -477,14 +698,15 @@ export function HeritageAudioPlayer({ currentNarration, onClearNarration }: Heri
   }, [isPlayingSoundscape, isNarrating, isMuted]);
 
   return (
-    <div className="fixed bottom-5 right-5 z-50">
+    // POSITIONED ON THE LEFT SIDE
+    <div className="fixed bottom-4 left-4 sm:bottom-6 sm:left-6 z-40">
       {/* Expanded Studio Drawer */}
       {isExpanded && (
-        <div className="mb-3 p-5 rounded-3xl bg-stone-900/95 backdrop-blur-2xl border border-amber-500/40 shadow-2xl w-80 sm:w-[420px] text-stone-200 animate-fade-in">
+        <div className="mb-3 p-5 rounded-3xl bg-stone-900/95 backdrop-blur-2xl border border-amber-500/40 shadow-2xl w-[calc(100vw-32px)] sm:w-[440px] max-h-[85vh] overflow-y-auto text-stone-200 animate-fade-in origin-bottom-left">
           {/* Header */}
           <div className="flex items-center justify-between pb-3 mb-3 border-b border-stone-800">
             <div className="flex items-center gap-2">
-              <div className="w-9 h-9 rounded-2xl bg-amber-500/20 text-amber-400 flex items-center justify-center">
+              <div className="w-9 h-9 rounded-2xl bg-amber-500/20 text-amber-400 flex items-center justify-center shadow-md">
                 <Disc3 className={`w-5 h-5 ${isPlayingSoundscape || isNarrating ? 'animate-spin-slow' : ''}`} />
               </div>
               <div>
@@ -492,7 +714,7 @@ export function HeritageAudioPlayer({ currentNarration, onClearNarration }: Heri
                   <span>Sonic Heritage Studio</span>
                   <Sparkles className="w-3.5 h-3.5 text-amber-400" />
                 </h4>
-                <p className="text-[10px] text-amber-400 font-mono">Web Audio Synthesizer & Voice Narration</p>
+                <p className="text-[10px] text-amber-400 font-mono">Traditional Indian Audio & Navigation</p>
               </div>
             </div>
 
@@ -577,7 +799,7 @@ export function HeritageAudioPlayer({ currentNarration, onClearNarration }: Heri
                 </div>
               </div>
 
-              {/* Voice Controls: Rewind, Play/Pause, Forward, Speed */}
+              {/* Voice Controls */}
               <div className="flex items-center justify-between gap-2">
                 <div className="flex items-center gap-1.5">
                   <button
@@ -640,11 +862,101 @@ export function HeritageAudioPlayer({ currentNarration, onClearNarration }: Heri
             </div>
           )}
 
-          {/* AMBIENT INDIAN SOUNDSCAPES SECTION */}
+          {/* 🧭 NAVIGATION AUDIO CONTROLS SECTION */}
+          <div className="mb-4 p-3.5 rounded-2xl bg-stone-950/80 border border-amber-500/30">
+            <div className="flex items-center justify-between mb-1.5">
+              <div className="flex items-center gap-1.5">
+                <Compass className="w-4 h-4 text-amber-400" />
+                <span className="text-[11px] font-bold text-amber-300 uppercase tracking-wider">
+                  Navigation Audio
+                </span>
+              </div>
+              <button
+                onClick={() => playNavigationSound(navSettings.soundType, 0.85)}
+                className="px-2 py-0.5 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 text-[10px] font-mono transition-colors"
+                title="Test navigation audio chime"
+              >
+                Test Chime
+              </button>
+            </div>
+
+            <p className="text-[10px] text-stone-400 mb-2.5">
+              Acoustic chimes and spoken voice guides as you navigate monuments and pages.
+            </p>
+
+            <div className="grid grid-cols-2 gap-2 mb-2">
+              <button
+                onClick={() => {
+                  const next = !navSettings.soundEnabled;
+                  updateNavAudioSettings({ soundEnabled: next });
+                  if (next) playNavigationSound(navSettings.soundType, 0.8);
+                }}
+                className={`p-2.5 rounded-xl border flex items-center justify-between transition-colors ${
+                  navSettings.soundEnabled
+                    ? 'bg-amber-500/15 border-amber-500/50 text-white'
+                    : 'bg-stone-900 border-stone-800 text-stone-400 hover:text-stone-300'
+                }`}
+              >
+                <div className="flex items-center gap-1.5">
+                  <Bell className="w-3.5 h-3.5 text-amber-400" />
+                  <span className="text-[11px] font-medium">Nav Chimes</span>
+                </div>
+                <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${navSettings.soundEnabled ? 'bg-amber-500 text-stone-950' : 'bg-stone-800 text-stone-500'}`}>
+                  {navSettings.soundEnabled ? 'ON' : 'OFF'}
+                </span>
+              </button>
+
+              <button
+                onClick={() => {
+                  const next = !navSettings.voiceEnabled;
+                  updateNavAudioSettings({ voiceEnabled: next });
+                }}
+                className={`p-2.5 rounded-xl border flex items-center justify-between transition-colors ${
+                  navSettings.voiceEnabled
+                    ? 'bg-amber-500/15 border-amber-500/50 text-white'
+                    : 'bg-stone-900 border-stone-800 text-stone-400 hover:text-stone-300'
+                }`}
+              >
+                <div className="flex items-center gap-1.5">
+                  <Mic className="w-3.5 h-3.5 text-amber-400" />
+                  <span className="text-[11px] font-medium">Voice Guide</span>
+                </div>
+                <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${navSettings.voiceEnabled ? 'bg-amber-500 text-stone-950' : 'bg-stone-800 text-stone-500'}`}>
+                  {navSettings.voiceEnabled ? 'ON' : 'OFF'}
+                </span>
+              </button>
+            </div>
+
+            {/* Chime Sound Motif Picker */}
+            <div>
+              <label className="text-[10px] text-stone-400 block mb-1">Navigation Chime Motif:</label>
+              <div className="grid grid-cols-4 gap-1 text-[10px]">
+                {(['temple-bell', 'sitar', 'flute', 'gentle'] as const).map((type) => (
+                  <button
+                    key={type}
+                    onClick={() => {
+                      updateNavAudioSettings({ soundType: type });
+                      playNavigationSound(type, 0.8);
+                    }}
+                    className={`py-1 px-1 rounded-lg border text-center capitalize transition-colors ${
+                      navSettings.soundType === type
+                        ? 'bg-amber-500/30 border-amber-500 text-amber-300 font-bold'
+                        : 'bg-stone-900 border-stone-800 text-stone-400 hover:text-stone-200'
+                    }`}
+                  >
+                    {type === 'temple-bell' ? '🔔 Bell' : type === 'sitar' ? '🪕 Sitar' : type === 'flute' ? '🪈 Flute' : '✨ Gentle'}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* 🎵 AMBIENT INDIAN SOUNDSCAPES SECTION */}
           <div className="space-y-2 mb-4">
             <div className="flex items-center justify-between">
-              <label className="text-[11px] font-bold text-stone-300 uppercase tracking-wider">
-                Ambient Traditional Soundscapes
+              <label className="text-[11px] font-bold text-stone-300 uppercase tracking-wider flex items-center gap-1.5">
+                <Music2 className="w-3.5 h-3.5 text-amber-400" />
+                <span>Ambient Traditional Soundscapes</span>
               </label>
               <span className="text-[10px] text-amber-400 font-mono">432 Hz Synthesizer</span>
             </div>
@@ -669,7 +981,7 @@ export function HeritageAudioPlayer({ currentNarration, onClearNarration }: Heri
                   >
                     <div>
                       <p className="text-xs font-bold text-stone-100 leading-tight mb-0.5">{track.name}</p>
-                      <p className="text-[10px] text-amber-400">{track.raga}</p>
+                      <p className="text-[10px] text-amber-400 font-medium">{track.raga}</p>
                     </div>
 
                     {isSelected && isPlayingSoundscape && (
@@ -718,7 +1030,7 @@ export function HeritageAudioPlayer({ currentNarration, onClearNarration }: Heri
           >
             {isPlayingSoundscape ? (
               <>
-                <Pause className="w-4 h-4" /> Pause Ambient Soundscape
+                <Pause className="w-4 h-4" /> Pause Ambient Music
               </>
             ) : (
               <>
@@ -729,7 +1041,7 @@ export function HeritageAudioPlayer({ currentNarration, onClearNarration }: Heri
         </div>
       )}
 
-      {/* Floating Pill / Mini Controller */}
+      {/* Floating Pill / Mini Controller (LEFT SIDE) */}
       <div className="flex items-center gap-2 bg-stone-900/90 backdrop-blur-xl p-2 rounded-full border border-amber-500/40 shadow-2xl hover:border-amber-400 transition-all">
         {/* Toggle Ambient Sound or Voice */}
         <button
@@ -763,15 +1075,26 @@ export function HeritageAudioPlayer({ currentNarration, onClearNarration }: Heri
         </button>
 
         {/* Live Canvas Audio Wave Visualizer */}
-        <div onClick={() => setIsExpanded(!isExpanded)} className="cursor-pointer px-1" title="Open Studio Drawer">
-          <canvas ref={canvasRef} width={105} height={32} className="block" />
+        <div
+          onClick={() => setIsExpanded(!isExpanded)}
+          className="cursor-pointer px-1 hidden sm:block"
+          title="Open Sonic Heritage Studio"
+        >
+          <canvas ref={canvasRef} width={90} height={30} className="block" />
         </div>
+
+        <button
+          onClick={() => setIsExpanded(!isExpanded)}
+          className="text-xs font-bold text-amber-300 hover:text-amber-200 transition-colors pr-1 hidden sm:flex items-center gap-1"
+        >
+          <span>Sonic Studio</span>
+        </button>
 
         {/* Expand / Collapse Drawer Button */}
         <button
           onClick={() => setIsExpanded(!isExpanded)}
           className="w-8 h-8 rounded-full flex items-center justify-center text-stone-400 hover:text-white hover:bg-stone-800 transition-colors"
-          title={isExpanded ? 'Minimize Audio Studio' : 'Expand Audio Studio'}
+          title={isExpanded ? 'Minimize Audio Studio' : 'Expand Sonic Heritage Studio'}
         >
           {isExpanded ? <ChevronDown className="w-4 h-4" /> : <ChevronUp className="w-4 h-4" />}
         </button>
