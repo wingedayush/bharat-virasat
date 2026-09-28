@@ -18,7 +18,8 @@ export type Route =
   | { name: 'unesco' }
   | { name: 'asi' }
   | { name: '3d-view' }
-  | { name: 'login' };
+  | { name: 'login' }
+  | { name: 'team' };
 
 function parseHash(): Route {
   const hash = window.location.hash.slice(1) || '/';
@@ -26,6 +27,7 @@ function parseHash(): Route {
 
   if (parts.length === 0) return { name: 'home' };
   if (parts[0] === 'login') return { name: 'login' };
+  if (parts[0] === 'team') return { name: 'team' };
   if (parts[0] === 'unesco') return { name: 'unesco' };
   if (parts[0] === 'asi') return { name: 'asi' };
   if (parts[0] === '3d-view') return { name: '3d-view' };

@@ -36,6 +36,52 @@ export function queryHeritageKnowledgeEngine(rawQuery: string): AIResponsePayloa
     q.includes('shuru');
 
   // =========================================================================
+  // 0. DEVELOPER & TEAM WINTECH INQUIRIES
+  // =========================================================================
+  if (
+    q.includes('developer') ||
+    q.includes('devloper') ||
+    q.includes('who made') ||
+    q.includes('who built') ||
+    q.includes('creator') ||
+    q.includes('wintech') ||
+    q.includes('ayush raj') ||
+    q.includes('ayush') ||
+    q.includes('kisne banaya') ||
+    q.includes('kisne banayi') ||
+    q.includes('kiski team') ||
+    q.includes('team name') ||
+    q.includes('founder') ||
+    (q.includes('team') && (q.includes('members') || q.includes('who') || q.includes('about') || q.includes('batao')))
+  ) {
+    return {
+      content:
+        `🏛️ **BharatVirasat** is architected and engineered by **Team Wintech**, proudly led by **Ayush Raj** (Team Lead & Backend / API Architect).\n\n` +
+        `### 👑 Team Leadership:\n` +
+        `• **Ayush Raj** — *Team Lead & Backend / API Architect*\n` +
+        `  Focus: Node.js & Express.js REST API architecture, secure authentication, and cloud infrastructure pipelines.\n` +
+        `  GitHub: [github.com/wingedayush](https://github.com/wingedayush)\n\n` +
+        `### 👥 Core Engineering Specialists:\n` +
+        `• **Krishna Gupta** — *Frontend & UI/UX Lead* (React.js, Tailwind CSS, interactive discovery dashboards)\n` +
+        `• **Anshul** — *AI / LLM & Vernacular Voice Specialist* (Speech-to-Text, multi-lingual translations, conversational AI)\n` +
+        `• **Imran Ansari** — *Computer Vision & Media Pipeline Lead* (Visual AI, Cloudinary media pipelines, 360° virtual tours)\n` +
+        `• **Dristy Srivastava** — *Database & Verification Engine Engineer* (Database schemas, data integrity, hybrid expert verification)\n` +
+        `• **Divyani Gupta** — *Geo-Spatial, Gamification & Pitch Lead* (Maps integration, cultural timelines, presentation & pitch lead)\n\n` +
+        `Our shared mission is preserving and celebrating India's living cultural heritage through cutting-edge 3D WebGL, spatial telemetry, and vernacular intelligence.`,
+      links: [
+        { label: '👥 Meet Team Wintech', path: '/team' },
+        { label: '🎓 Student Innovation Pass', path: '/login' },
+      ],
+      suggestedFollowUps: [
+        'Explore 3D Monument Sanctums',
+        'Tell me about Ayush Raj',
+        'View ASI Protection Portal',
+      ],
+      category: 'general',
+    };
+  }
+
+  // =========================================================================
   // 1. SPECIFIC UNESCO MONUMENTS (32 SITES) MATCHING
   // =========================================================================
   const matchedMonument = unescoMonumentsList.find((m) => {

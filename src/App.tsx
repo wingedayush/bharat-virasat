@@ -18,6 +18,7 @@ import { NearMePage } from '@/pages/NearMePage';
 import { LoginPage } from '@/pages/LoginPage';
 import { AsiPortalPage } from '@/pages/AsiPortalPage';
 import { Monument3DPage } from '@/pages/Monument3DPage';
+import { TeamPage } from '@/pages/TeamPage';
 import { HeritageAudioPlayer } from '@/components/HeritageAudioPlayer';
 import { GlobalAIChatWidget } from '@/components/GlobalAIChatWidget';
 
@@ -81,6 +82,9 @@ function App() {
       break;
     case 'login':
       page = <LoginPage />;
+      break;
+    case 'team':
+      page = <TeamPage />;
       break;
     default:
       page = <HomePage onPlayAudioGuide={handlePlayAudioGuide} />;

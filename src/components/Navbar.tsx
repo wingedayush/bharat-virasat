@@ -87,6 +87,16 @@ export function Navbar() {
               <span className="text-amber-400 font-bold text-sm">{progress.totalPoints}</span>
             </div>
 
+            {/* Team Wintech Showcase Button */}
+            <button
+              onClick={() => navigate('/team')}
+              className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl bg-stone-800/80 hover:bg-amber-500/20 text-stone-300 hover:text-amber-300 border border-stone-700/80 hover:border-amber-500/40 text-xs font-bold transition-all cursor-pointer shadow-sm"
+              title="Meet the Builders: Team Wintech (Led by Ayush Raj)"
+            >
+              <Users className="w-3.5 h-3.5 text-amber-400" />
+              <span className="hidden md:inline">Team Wintech</span>
+            </button>
+
             {/* Login / Student Pass Action Button */}
             {isLoggedIn && user ? (
               <button

@@ -256,6 +256,10 @@ export const PAGE_AUDIO_GUIDES: Record<string, { title: string; voiceIntro: stri
     title: 'Student Innovation Pass',
     voiceIntro: 'Sign in to access your student innovation pass and heritage research portfolio.',
   },
+  team: {
+    title: 'Meet Team Wintech',
+    voiceIntro: 'Meet Team Wintech, the engineering and architectural team behind BharatVirasat.',
+  },
 };
 
 /**

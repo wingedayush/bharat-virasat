@@ -32,6 +32,20 @@ const DEMO_STUDENT: UserProfile = {
   joinedDate: 'September 2024'
 };
 
+const DEMO_LEAD: UserProfile = {
+  id: 'usr_wintech_lead',
+  name: 'Ayush Raj',
+  email: 'ayush.raj@wintech.dev',
+  role: 'student_innovator',
+  college: 'Team Wintech • System & API Architect',
+  studentId: 'WINTECH-LEAD-01',
+  avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&q=80',
+  badges: ['Team Lead 👑', 'Backend Architect ⚡', '3D Engine Integrator 🌐', 'Cloud Deployer 🚀', 'BharatVirasat Creator 🏛️'],
+  innovationsCount: 12,
+  sanctumsVisited: 32,
+  joinedDate: 'September 2024'
+};
+
 export function useAuth() {
   const [user, setUser] = useState<UserProfile | null>(() => {
     try {
@@ -80,8 +94,10 @@ export function useAuth() {
     return () => window.removeEventListener('auth_state_changed', handleAuthChange);
   }, []);
 
-  const loginWithDemo = (role: 'student' | 'scholar' = 'student') => {
-    if (role === 'student') {
+  const loginWithDemo = (role: 'student' | 'scholar' | 'lead' = 'student') => {
+    if (role === 'lead') {
+      saveUser(DEMO_LEAD);
+    } else if (role === 'student') {
       saveUser(DEMO_STUDENT);
     } else {
       saveUser({

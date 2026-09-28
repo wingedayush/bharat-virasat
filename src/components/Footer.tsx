@@ -1,4 +1,4 @@
-import { Compass, Heart } from 'lucide-react';
+import { Compass, Heart, Users, ExternalLink } from 'lucide-react';
 import { navigate } from '@/hooks/useRouter';
 
 export function Footer() {
@@ -37,16 +37,30 @@ export function Footer() {
             <ul className="space-y-2 text-sm">
               <li><button onClick={() => navigate('/asi')} className="text-stone-400 hover:text-amber-400 transition-colors">Monument E-Tickets</button></li>
               <li><button onClick={() => navigate('/asi')} className="text-stone-400 hover:text-amber-400 transition-colors">Site Museums Directory</button></li>
-              <li><button onClick={() => navigate('/asi')} className="text-stone-400 hover:text-amber-400 transition-colors">AMASR Act 1958/2010</button></li>
+              <li><button onClick={() => navigate('/team')} className="text-amber-400 hover:text-amber-300 font-semibold transition-colors">👥 Team Wintech</button></li>
               <li><button onClick={() => navigate('/quiz')} className="text-stone-400 hover:text-amber-400 transition-colors">Heritage Quiz</button></li>
               <li><a href="https://asi.nic.in" target="_blank" rel="noopener noreferrer" className="text-stone-400 hover:text-amber-400 transition-colors flex items-center gap-1">Official asi.nic.in &nearr;</a></li>
             </ul>
           </div>
         </div>
 
-        <div className="mt-10 pt-6 border-t border-stone-800 flex items-center justify-between flex-wrap gap-4">
-          <p className="text-stone-500 text-sm">Made with <Heart className="w-3 h-3 inline text-red-500" /> for Indian Heritage</p>
-          <p className="text-stone-500 text-sm">BharatVirasat &copy; 2026 &bull; Preserving India's Living Heritage</p>
+        <div className="mt-10 pt-6 border-t border-stone-800 flex flex-col md:flex-row items-center justify-between gap-4">
+          <div className="flex flex-wrap items-center justify-center md:justify-start gap-2 text-xs sm:text-sm text-stone-400">
+            <span>Crafted with pride by <strong className="text-white font-semibold">Team Wintech</strong></span>
+            <span className="hidden sm:inline">&bull;</span>
+            <span>Led by <a href="https://github.com/wingedayush" target="_blank" rel="noopener noreferrer" className="text-amber-400 hover:text-amber-300 font-bold hover:underline inline-flex items-center gap-1">Ayush Raj (@wingedayush) <ExternalLink className="w-3 h-3" /></a></span>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => navigate('/team')}
+              className="px-3 py-1.5 rounded-xl bg-amber-500/15 hover:bg-amber-500 hover:text-stone-950 text-amber-400 border border-amber-500/30 text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shadow-sm hover:scale-105"
+            >
+              <Users className="w-3.5 h-3.5" />
+              <span>Meet Team Wintech</span>
+            </button>
+            <p className="text-stone-500 text-xs">BharatVirasat &copy; 2026</p>
+          </div>
         </div>
       </div>
     </footer>

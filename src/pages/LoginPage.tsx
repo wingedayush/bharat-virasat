@@ -241,10 +241,27 @@ export function LoginPage() {
             </span>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+            <button
+              onClick={() => loginWithDemo('lead')}
+              className="p-3 rounded-2xl bg-amber-500/20 hover:bg-amber-500 hover:text-stone-950 text-left border border-amber-400/60 transition-all flex items-center gap-3 group cursor-pointer shadow-md"
+            >
+              <div className="w-9 h-9 rounded-xl bg-amber-500 text-stone-950 font-black flex items-center justify-center shrink-0">
+                👑
+              </div>
+              <div className="overflow-hidden">
+                <span className="font-bold text-xs block text-white group-hover:text-stone-950 truncate">
+                  Ayush Raj
+                </span>
+                <span className="text-[10px] text-amber-300 group-hover:text-stone-900 truncate block font-medium">
+                  Team Lead (Wintech)
+                </span>
+              </div>
+            </button>
+
             <button
               onClick={() => loginWithDemo('student')}
-              className="p-3 rounded-2xl bg-stone-900/90 hover:bg-amber-500 hover:text-stone-950 text-left border border-amber-500/40 transition-all flex items-center gap-3 group cursor-pointer"
+              className="p-3 rounded-2xl bg-stone-900/90 hover:bg-amber-500 hover:text-stone-950 text-left border border-stone-750 transition-all flex items-center gap-3 group cursor-pointer"
             >
               <div className="w-9 h-9 rounded-xl bg-amber-500/20 text-amber-400 group-hover:bg-stone-950 group-hover:text-amber-400 flex items-center justify-center shrink-0 font-bold">
                 🎓
@@ -253,15 +270,15 @@ export function LoginPage() {
                 <span className="font-bold text-xs block text-white group-hover:text-stone-950 truncate">
                   Aarav Sharma
                 </span>
-                <span className="text-[11px] text-stone-400 group-hover:text-stone-900 truncate block">
-                  Student Innovator (IIT Delhi)
+                <span className="text-[10px] text-stone-400 group-hover:text-stone-900 truncate block">
+                  Student Innovator
                 </span>
               </div>
             </button>
 
             <button
               onClick={() => loginWithDemo('scholar')}
-              className="p-3 rounded-2xl bg-stone-900/90 hover:bg-teal-500 hover:text-stone-950 text-left border border-teal-500/40 transition-all flex items-center gap-3 group cursor-pointer"
+              className="p-3 rounded-2xl bg-stone-900/90 hover:bg-teal-500 hover:text-stone-950 text-left border border-stone-750 transition-all flex items-center gap-3 group cursor-pointer"
             >
               <div className="w-9 h-9 rounded-xl bg-teal-500/20 text-teal-400 group-hover:bg-stone-950 group-hover:text-teal-400 flex items-center justify-center shrink-0 font-bold">
                 📜
@@ -270,7 +287,7 @@ export function LoginPage() {
                 <span className="font-bold text-xs block text-white group-hover:text-stone-950 truncate">
                   Dr. Meera Nambiar
                 </span>
-                <span className="text-[11px] text-stone-400 group-hover:text-stone-900 truncate block">
+                <span className="text-[10px] text-stone-400 group-hover:text-stone-900 truncate block">
                   ASI Heritage Scholar
                 </span>
               </div>
@@ -514,6 +531,17 @@ export function LoginPage() {
             <ShieldCheck className="w-4 h-4 text-emerald-500" />
             <span>Encrypted • National Student Heritage & Innovation Network</span>
           </div>
+        </div>
+
+        {/* Creator Attribution Card */}
+        <div className="p-4 rounded-2xl bg-stone-900/70 border border-stone-800 flex items-center justify-between text-xs text-stone-400 shadow-md">
+          <span>Platform engineered by <strong className="text-white">Team Wintech</strong> (Led by Ayush Raj)</span>
+          <button
+            onClick={() => navigate('/team')}
+            className="text-amber-400 hover:text-amber-300 font-bold hover:underline cursor-pointer"
+          >
+            Meet the Builders &rarr;
+          </button>
         </div>
       </div>
     </MonumentAnimatedBackground>
